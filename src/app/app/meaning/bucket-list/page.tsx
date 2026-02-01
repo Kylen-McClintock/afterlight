@@ -177,7 +177,7 @@ export default function BucketListPage() {
                                 <div className="flex items-start gap-4 flex-1">
                                     <button
                                         className={`mt-1 h-6 w-6 shrink-0 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${item.is_completed ? "bg-primary border-primary text-white" : "border-muted-foreground hover:border-primary"}`}
-                                        onClick={() => toggleComplete(item.id)}
+                                        onClick={() => toggleComplete(item.id, item.is_completed)}
                                     >
                                         {item.is_completed && <Check className="h-4 w-4" />}
                                     </button>
