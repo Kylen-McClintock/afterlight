@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AfterLight MVP
 
-## Getting Started
+"Preserve the light of your life."
 
-First, run the development server:
+AfterLight is a collaborative legacy and meaning platform designed to capture stories and clarify what matters most.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Tech Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS (v4) + Radix UI
+- **Database**: Supabase (Postgres)
+- **Auth**: Supabase Auth
+- **Storage**: Supabase Storage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup Instructions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd AfterLight
+   ```
 
-## Learn More
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+3. **Configure Environment Variables**
+   - Copy `env.example` to `.env.local`
+   - Fill in your Supabase credentials (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` for seeding)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Setup Database**
+   - Go to your Supabase Dashboard -> SQL Editor.
+   - Run the content of `supabase/migrations/20240201000000_init_schema.sql`.
+   - Enable Auth providers (Email/Password, Google).
+   - Create a Storage bucket named `stories` (public).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. **Seed Default Content**
+   - Run the seed script to populate Prompts, Quotes, and Meditations:
+   ```bash
+   npx tsx scripts/seed-defaults.ts
+   ```
 
-## Deploy on Vercel
+6. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Features (MVP)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Circle Creation**: Establish your private legacy circle.
+- **Story Capture**: Record audio/video, write text, or upload files.
+- **Prompt Queue**: Curated questions to spark memories.
+- **Timeline**: Visual chronological view of your stories.
+- **Meaning Layer**:
+  - Values Map
+  - Bucket List
+  - Weekly Plan (Dashboard)
+
+## License
+
+Private / Proprietary.

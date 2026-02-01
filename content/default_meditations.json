@@ -1,0 +1,57 @@
+[
+    {
+        "title": "Morning Light",
+        "category": "presence",
+        "script_text": "Find a comfortable seated position. Close your eyes. Take a deep breath in... and out. Visualize a warm, soft light surrounding you. This light represents a new day, full of possibility. Feel it warming your skin, easing any tension. You are here. You are safe. You are loved. Carry this light with you today.",
+        "duration_minutes": 2,
+        "tags": [
+            "morning",
+            "calm",
+            "light"
+        ]
+    },
+    {
+        "title": "Gratitude Scan",
+        "category": "gratitude",
+        "script_text": "Take a moment to pause. Think of one person who has made you smile recently. Visualize their face. Feel the warmth of that connection. Now, think of one simple thing around you that brings you comfort—a soft blanket, a cup of tea, the sun through the window. say thank you to it. Finally, place a hand over your heart and say thank you to yourself for being here.",
+        "duration_minutes": 3,
+        "tags": [
+            "gratitude",
+            "connection",
+            "peace"
+        ]
+    },
+    {
+        "title": "Letting Go",
+        "category": "peace",
+        "script_text": "Imagine you are holding a heavy stone in your hand. This stone represents a worry or regret you've been carrying. Feel its weight. Now, imagine yourself standing by a gentle, flowing river. Slowly, uncurl your fingers. Let the stone drop into the water. Watch it sink and disappear. The river flows on, and your hand is now light and free.",
+        "duration_minutes": 4,
+        "tags": [
+            "release",
+            "peace",
+            "forgiveness"
+        ]
+    },
+    {
+        "title": "Circle of Love",
+        "category": "loving-kindness",
+        "script_text": "Visualize the people you love standing in a circle around you. See their smiles. Feel their love radiating towards you like a warm embrace. You don't need to do anything to earn this love; it is yours simply because you exist. Breathe in their love. Breathe out your love for them.",
+        "duration_minutes": 3,
+        "tags": [
+            "love",
+            "family",
+            "connection"
+        ]
+    },
+    {
+        "title": "Courage for Today",
+        "category": "courage",
+        "script_text": "Place your feet firmly on the ground. Feel the earth supporting you. You are strong. You have weathered many storms. Inhale strength... exhale fear. You have everything you need within you to face this moment. Trust yourself.",
+        "duration_minutes": 2,
+        "tags": [
+            "strength",
+            "courage",
+            "grounding"
+        ]
+    }
+]

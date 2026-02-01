@@ -1,0 +1,99 @@
+[
+    {
+        "title": "Earliest Memory",
+        "prompt_text": "Close your eyes and think back to the very beginning. What is the first moment you can remember? Who was there? What did it feel like?",
+        "tags": [
+            "childhood",
+            "memory"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "Meeting Your Partner",
+        "prompt_text": "Tell the story of how you met your spouse or partner. What was your first impression? Did you know they were 'the one' right away?",
+        "tags": [
+            "love",
+            "romance",
+            "family"
+        ],
+        "relationship_type": "spouse"
+    },
+    {
+        "title": "A Lesson Learned the Hard Way",
+        "prompt_text": "We all make mistakes. Share a time when you failed or made a difficult mistake, and what you learned from it that changed you.",
+        "tags": [
+            "wisdom",
+            "growth",
+            "challenge"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "Proudest Achievement",
+        "prompt_text": "Looking back on your life so far, what is one accomplishment that makes you swell with pride? It doesn't have to be something big to the world, just big to you.",
+        "tags": [
+            "achievement",
+            "pride",
+            "career"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "Advice to Your Younger Self",
+        "prompt_text": "If you could go back in time and sit down with your 20-year-old self for ten minutes, what would you tell them?",
+        "tags": [
+            "wisdom",
+            "reflection"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "A Day of Perfect Joy",
+        "prompt_text": "Describe a day from your past that was filled with pure joy. What happened? Why was it so special?",
+        "tags": [
+            "joy",
+            "happiness",
+            "memory"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "Your Parents",
+        "prompt_text": "Tell me about your parents. What were they like? what is your favorite memory with them?",
+        "tags": [
+            "family",
+            "parents",
+            "childhood"
+        ],
+        "relationship_type": "child"
+    },
+    {
+        "title": "Historical Events",
+        "prompt_text": "You have lived through history. What is one major historical event that stands out in your memory? Where were you when it happened?",
+        "tags": [
+            "history",
+            "world"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "Favorite Place",
+        "prompt_text": "Is there a physical place in the world where you feel most at peace or most yourself? Describe it to me.",
+        "tags": [
+            "place",
+            "peace",
+            "comfort"
+        ],
+        "relationship_type": null
+    },
+    {
+        "title": "What Matters Most",
+        "prompt_text": "At the end of the day, what do you believe matters most in life?",
+        "tags": [
+            "values",
+            "wisdom",
+            "legacy"
+        ],
+        "relationship_type": null
+    }
+]
