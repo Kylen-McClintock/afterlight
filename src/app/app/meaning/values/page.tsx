@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 // import { Slider } from "@/components/ui/slider" // Need Slider component
 import { Loader2, Save } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 // Mock values for selection
 const COMMON_VALUES = [
@@ -19,6 +20,51 @@ export default function ValuesPage() {
     const [selectedValues, setSelectedValues] = useState<string[]>([])
     const [energyLevel, setEnergyLevel] = useState(50)
     const [isSaving, setIsSaving] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
+    const [circleId, setCircleId] = useState<string | null>(null)
+
+    const supabase = createClient()
+
+    // Fetch initial state
+    useEffect(() => {
+        const loadValues = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    setIsLoading(false) // If no user, stop loading and show empty state
+                    return
+                }
+
+                // Get circle
+                const { data: membership } = await supabase
+                    .from('circle_memberships')
+                    .select('circle_id')
+                    .eq('user_id', user.id)
+                    .limit(1)
+                    .single()
+
+                if (membership) {
+                    setCircleId(membership.circle_id)
+                    // Get values map
+                    const { data: map } = await supabase
+                        .from('values_map')
+                        .select('*')
+                        .eq('circle_id', membership.circle_id)
+                        .single()
+
+                    if (map) {
+                        setSelectedValues(map.values || [])
+                        setEnergyLevel(map.energy_level || 50)
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading values:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        loadValues()
+    }, [])
 
     const toggleValue = (val: string) => {
         if (selectedValues.includes(val)) {
@@ -30,12 +76,30 @@ export default function ValuesPage() {
     }
 
     const handleSave = async () => {
+        if (!circleId) {
+            alert("No circle found. Please create one in onboarding.")
+            return
+        }
         setIsSaving(true)
-        // Mock save to values_map
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        console.log("Saved values:", selectedValues, energyLevel)
+
+        const { error } = await supabase
+            .from('values_map')
+            .upsert({
+                circle_id: circleId,
+                values: selectedValues,
+                energy_level: energyLevel
+            })
+
         setIsSaving(false)
+        if (error) {
+            console.error("Error saving:", error)
+            alert("Failed to save.")
+        } else {
+            alert("Values Map Saved!")
+        }
     }
+
+    if (isLoading) return <div className="p-8 text-center">Loading your map...</div>
 
     return (
         <div className="max-w-2xl mx-auto space-y-8">

@@ -6,21 +6,58 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, Loader2, Users } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 export default function OnboardingPage() {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [circleName, setCircleName] = useState("")
     const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const handleCreateCircle = async () => {
         if (!circleName) return
         setIsSaving(true)
-        // Mock API call to create circle
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        console.log("Circle created:", circleName)
-        setIsSaving(false)
-        setStep(2)
+        setError(null)
+
+        const supabase = createClient()
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Please sign in first.")
+
+            // 1. Create Circle
+            const { data: circle, error: circleError } = await supabase
+                .from('circles')
+                .insert({
+                    primary_user_id: user.id,
+                    name: circleName
+                })
+                .select()
+                .single()
+
+            if (circleError) throw circleError
+
+            // 2. Add Membership (Primary)
+            // Note: RLS might handle primary user logic, but let's be explicit if needed.
+            // Or check triggers? No trigger set for this.
+            const { error: memberError } = await supabase
+                .from('circle_memberships')
+                .insert({
+                    circle_id: circle.id,
+                    user_id: user.id,
+                    role: 'primary',
+                    relationship_label: 'Primary'
+                })
+
+            if (memberError) throw memberError
+
+            setStep(2)
+        } catch (err: any) {
+            console.error(err)
+            setError(err.message)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const handleFinish = () => {

@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Calendar, User, Share2, MoreVertical } from "lucide-react"
+import { ArrowLeft, Calendar, User, Share2, MoreVertical, FileText } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -117,6 +117,23 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                                         className="w-full"
                                         src={asset.storage_path ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${asset.storage_path}` : asset.external_url}
                                     />
+
+                                    {/* Transcription Section */}
+                                    <div className="mt-4 pt-4 border-t">
+                                        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                                            <FileText className="h-4 w-4" /> Transcript
+                                        </h4>
+                                        {asset.text_content ? (
+                                            <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
+                                                {asset.text_content}
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 bg-muted/10 rounded-md text-sm text-muted-foreground italic flex justify-between items-center">
+                                                <span>No transcript available yet.</span>
+                                                <Button variant="outline" size="sm" disabled>Request Transcription (Coming Soon)</Button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}

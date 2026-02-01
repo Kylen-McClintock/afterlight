@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Check, Trash2, Edit2, ChevronDown, ChevronUp, Save } from "lucide-react"
+import { Plus, Check, Trash2, Edit2, ChevronDown, ChevronUp, Save, Loader2 } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 interface BucketItem {
     id: string
@@ -18,59 +19,92 @@ interface BucketItem {
     is_completed: boolean
 }
 
-// Mock initial data
-const INITIAL_ITEMS: BucketItem[] = [
-    {
-        id: "1",
-        title: "Visit Japan",
-        tiny_version: "Watch a documentary about Kyoto while eating sushi.",
-        full_version: "2-week trip to Tokyo and Kyoto with family.",
-        why_it_matters: "Always wanted to see the cherry blossoms.",
-        effort_level: 3,
-        is_completed: false
-    },
-    {
-        id: "2",
-        title: "Learn to Paint",
-        tiny_version: "Buy a watercolor set and paint one flower.",
-        full_version: "Take a 6-week oil painting course.",
-        why_it_matters: "Express creativity.",
-        effort_level: 2,
-        is_completed: false
-    }
-]
-
 export default function BucketListPage() {
-    const [items, setItems] = useState<BucketItem[]>(INITIAL_ITEMS)
+    const [items, setItems] = useState<BucketItem[]>([])
     const [isAdding, setIsAdding] = useState(false)
     const [newItem, setNewItem] = useState({
         title: "", tiny_version: "", full_version: "", why_it_matters: "", effort_level: 1
     })
     const [expandedId, setExpandedId] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [circleId, setCircleId] = useState<string | null>(null)
 
-    const handleAddItem = () => {
-        if (!newItem.title) return
-        const item: BucketItem = {
-            id: Date.now().toString(),
-            title: newItem.title,
-            tiny_version: newItem.tiny_version || "",
-            full_version: newItem.full_version || "",
-            why_it_matters: newItem.why_it_matters || "",
-            effort_level: newItem.effort_level || 1,
-            is_completed: false
+    const supabase = createClient()
+
+    useEffect(() => {
+        const fetchItems = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) return
+
+                // Get circle (reusing this logic, should extract to hook later)
+                const { data: membership } = await supabase
+                    .from('circle_memberships')
+                    .select('circle_id')
+                    .eq('user_id', user.id)
+                    .limit(1)
+                    .single()
+
+                if (membership) {
+                    setCircleId(membership.circle_id)
+                    const { data } = await supabase
+                        .from('bucket_list_items')
+                        .select('*')
+                        .eq('circle_id', membership.circle_id)
+                        .order('created_at', { ascending: false })
+
+                    if (data) setItems(data as BucketItem[])
+                }
+            } catch (e) {
+                console.error(e)
+            } finally {
+                setIsLoading(false)
+            }
         }
-        setItems([item, ...items])
-        setIsAdding(false)
-        setNewItem({ title: "", tiny_version: "", full_version: "", why_it_matters: "", effort_level: 1 })
+        fetchItems()
+    }, [])
+
+    const handleAddItem = async () => {
+        if (!newItem.title || !circleId) return
+
+        const { data, error } = await supabase
+            .from('bucket_list_items')
+            .insert({
+                circle_id: circleId,
+                title: newItem.title,
+                tiny_version: newItem.tiny_version,
+                full_version: newItem.full_version,
+                why_it_matters: newItem.why_it_matters,
+                effort_level: newItem.effort_level,
+                is_completed: false
+            })
+            .select()
+            .single()
+
+        if (data) {
+            setItems([data as BucketItem, ...items])
+            setIsAdding(false)
+            setNewItem({ title: "", tiny_version: "", full_version: "", why_it_matters: "", effort_level: 1 })
+        }
     }
 
-    const toggleComplete = (id: string) => {
-        setItems(items.map(i => i.id === id ? { ...i, is_completed: !i.is_completed } : i))
+    const toggleComplete = async (id: string, currentStatus: boolean) => {
+        // Optimistic update
+        setItems(items.map(i => i.id === id ? { ...i, is_completed: !currentStatus } : i))
+
+        await supabase
+            .from('bucket_list_items')
+            .update({ is_completed: !currentStatus })
+            .eq('id', id)
     }
 
-    const deleteItem = (id: string) => {
+    const deleteItem = async (id: string) => {
+        // Optimistic
         setItems(items.filter(i => i.id !== id))
+        await supabase.from('bucket_list_items').delete().eq('id', id)
     }
+
+    if (isLoading) return <div className="p-8 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto" /></div>
 
     return (
         <div className="max-w-3xl mx-auto space-y-8">

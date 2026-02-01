@@ -22,40 +22,195 @@ function CreateStoryContent() {
 
     const promptId = searchParams.get("promptId")
 
+    const [title, setTitle] = useState("")
     const [textContent, setTextContent] = useState("")
     const [file, setFile] = useState<File | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
+    // Helper to get active circle (MVP: fetch first circle user is in)
+    const getActiveCircleId = async (supabase: any, userId: string) => {
+        const { data } = await supabase
+            .from('circle_memberships')
+            .select('circle_id')
+            .eq('user_id', userId)
+            .limit(1)
+            .single()
+        return data?.circle_id
+    }
+
     const handleSaveMedia = async (blob: Blob) => {
-        // 1. Upload to Supabase Storage
+        if (!title.trim()) {
+            alert("Please give your story a title.")
+            return
+        }
+        setIsSaving(true)
         const supabase = createClient()
-        const fileName = `${Date.now()}-${mode}.webm`
 
-        // Mock upload for now
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        console.log("Mock upload complete", blob.size)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Not authenticated")
 
-        router.push("/app/timeline")
+            const circleId = await getActiveCircleId(supabase, user.id)
+            if (!circleId) throw new Error("No circle found. Please create one.")
+
+            // 1. Create Session
+            const { data: session, error: sessionError } = await supabase
+                .from('story_sessions')
+                .insert({
+                    circle_id: circleId,
+                    title: title,
+                    storyteller_user_id: user.id,
+                    prompt_request_id: promptId || null,
+                    visibility: 'shared_with_circle'
+                })
+                .select()
+                .single()
+
+            if (sessionError) throw sessionError
+
+            // 2. Upload File
+            const ext = mode === 'video' ? 'webm' : 'webm' // MediaRecorder usually webm
+            const fileName = `${session.id}/${Date.now()}.${ext}`
+            const { error: uploadError } = await supabase.storage
+                .from('stories')
+                .upload(fileName, blob)
+
+            if (uploadError) throw uploadError
+
+            // 3. Create Asset
+            const { error: assetError } = await supabase
+                .from('story_assets')
+                .insert({
+                    story_session_id: session.id,
+                    asset_type: mode, // 'audio' or 'video'
+                    source_type: 'browser_recording',
+                    storage_path: fileName,
+                    mime_type: blob.type,
+                    duration_seconds: null // Could calculate if we tracked it
+                })
+
+            if (assetError) throw assetError
+
+            router.push("/app/timeline")
+        } catch (error: any) {
+            console.error("Save error:", error)
+            alert(`Error saving story: ${error.message}`)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const handleSaveText = async () => {
-        if (!textContent.trim()) return
+        if (!title.trim() || !textContent.trim()) {
+            alert("Please add a title and story text.")
+            return
+        }
         setIsSaving(true)
-        // Mock save
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        console.log("Mock text save", textContent)
-        setIsSaving(false)
-        router.push("/app/timeline")
+        const supabase = createClient()
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Not authenticated")
+
+            const circleId = await getActiveCircleId(supabase, user.id)
+            if (!circleId) throw new Error("No circle found")
+
+            // 1. Create Session
+            const { data: session, error: sessionError } = await supabase
+                .from('story_sessions')
+                .insert({
+                    circle_id: circleId,
+                    title: title,
+                    storyteller_user_id: user.id,
+                    prompt_request_id: promptId || null
+                })
+                .select()
+                .single()
+
+            if (sessionError) throw sessionError
+
+            // 2. Create Asset (Text)
+            const { error: assetError } = await supabase
+                .from('story_assets')
+                .insert({
+                    story_session_id: session.id,
+                    asset_type: 'text',
+                    source_type: 'text',
+                    text_content: textContent
+                })
+
+            if (assetError) throw assetError
+
+            router.push("/app/timeline")
+        } catch (error: any) {
+            console.error("Save error:", error)
+            alert(`Error: ${error.message}`)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const handleSaveFile = async () => {
-        if (!file) return
+        if (!title.trim() || !file) {
+            alert("Title and file are required.")
+            return
+        }
         setIsSaving(true)
-        // Mock upload
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        console.log("Mock file upload", file.name)
-        setIsSaving(false)
-        router.push("/app/timeline")
+        const supabase = createClient()
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Not authenticated")
+
+            const circleId = await getActiveCircleId(supabase, user.id)
+            if (!circleId) throw new Error("No circle found")
+
+            // 1. Create Session
+            const { data: session, error: sessionError } = await supabase
+                .from('story_sessions')
+                .insert({
+                    circle_id: circleId,
+                    title: title,
+                    storyteller_user_id: user.id,
+                    prompt_request_id: promptId || null
+                })
+                .select()
+                .single()
+
+            if (sessionError) throw sessionError
+
+            // 2. Upload
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${session.id}/${Date.now()}.${fileExt}`
+            const { error: uploadError } = await supabase.storage
+                .from('stories')
+                .upload(fileName, file)
+
+            if (uploadError) throw uploadError
+
+            // 3. Asset
+            const isVideo = file.type.startsWith('video')
+            const type = isVideo ? 'video' : 'audio'
+
+            const { error: assetError } = await supabase
+                .from('story_assets')
+                .insert({
+                    story_session_id: session.id,
+                    asset_type: type,
+                    source_type: 'file_upload',
+                    storage_path: fileName,
+                    mime_type: file.type
+                })
+
+            if (assetError) throw assetError
+
+            router.push("/app/timeline")
+        } catch (error: any) {
+            console.error("Save error:", error)
+            alert(`Error: ${error.message}`)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     return (
@@ -74,6 +229,15 @@ function CreateStoryContent() {
                         {promptId ? "Answering prompt..." : "Share a memory or thought."}
                     </p>
                 </div>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Story Title</label>
+                <Input
+                    placeholder="e.g. The time we went to..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                />
             </div>
 
             {/* Render based on mode */}
