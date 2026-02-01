@@ -34,7 +34,14 @@ export async function updateSession(request: NextRequest) {
     )
 
     // refresh session if expired
-    await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Protected Routes Logic
+    if (request.nextUrl.pathname.startsWith('/app') && !user) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
 
     return supabaseResponse
 }
