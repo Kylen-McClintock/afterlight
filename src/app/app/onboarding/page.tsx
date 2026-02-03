@@ -55,6 +55,7 @@ export default function OnboardingPage() {
         } catch (err: any) {
             console.error(err)
             setError(err.message)
+            alert(`Error creating circle: ${err.message}`)
         } finally {
             setIsSaving(false)
         }

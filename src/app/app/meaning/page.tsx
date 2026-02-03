@@ -45,7 +45,7 @@ export default function MeaningPage() {
                 </Link>
 
                 {/* Quotes & Meditations */}
-                <Link href="/app/meaning/inspiration" className="group">
+                <Link href="/app/prompts?category=Wisdom" className="group">
                     <Card className="h-full hover:border-primary/50 transition-colors">
                         <CardHeader>
                             <Sparkles className="h-8 w-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
