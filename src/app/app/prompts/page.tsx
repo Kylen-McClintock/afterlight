@@ -3,14 +3,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-export default async function PromptsPage() {
-    const supabase = await createClient()
 
-    // Fetch from global library for now since we don't have circle requests yet
-    const { data: prompts, error } = await supabase
+import { PromptFilters } from "@/components/prompts/PromptFilters"
+import Link from "next/link"
+
+export const dynamic = 'force-dynamic'
+
+export default async function PromptsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ category?: string }>
+}) {
+    const supabase = await createClient()
+    const { category } = await searchParams
+
+    let query = supabase
         .from('prompt_library_global')
         .select('*')
-        .limit(10)
+        .limit(100) // 10x prompts
+
+    if (category) {
+        // Filter where tags array contains the category
+        query = query.contains('tags', [category])
+    }
+
+    const { data: prompts, error } = await query
 
     if (error) {
         console.error("Error fetching prompts:", error)
@@ -23,8 +40,11 @@ export default async function PromptsPage() {
                     <h1 className="text-3xl font-heading font-bold">Prompt Queue</h1>
                     <p className="text-muted-foreground">Questions waiting for your story.</p>
                 </div>
-                <Button>Request a Prompt</Button>
+                {/* Future: Request a prompt modal */}
+                {/* <Button>Request a Prompt</Button> */}
             </div>
+
+            <PromptFilters />
 
             <div className="grid gap-4">
                 {prompts && prompts.length > 0 ? (
@@ -40,7 +60,9 @@ export default async function PromptsPage() {
                                             ))}
                                         </div>
                                     </div>
-                                    <Button size="sm">Answer</Button>
+                                    <Link href={`/app/story/create?mode=text&promptId=${prompt.id}`}>
+                                        <Button size="sm">Answer</Button>
+                                    </Link>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -51,8 +73,7 @@ export default async function PromptsPage() {
                 ) : (
                     <div className="text-center p-8 border rounded-lg bg-muted/20">
                         <p className="text-muted-foreground">
-                            No prompts found. <br />
-                            (If you haven't seeded the database yet, run `npx tsx scripts/seed-defaults.ts`)
+                            No prompts found for this category.
                         </p>
                     </div>
                 )}

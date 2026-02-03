@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation"
 import { StoryRecorder } from "@/components/story/StoryRecorder"
 import { createClient } from "@/utils/supabase/client"
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -37,6 +37,22 @@ function CreateStoryContent() {
             .single()
         return data?.circle_id
     }
+
+    // Check for circle on mount
+    useEffect(() => {
+        const checkCircle = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return // layout handles auth redirect usually
+
+            const circleId = await getActiveCircleId(supabase, user.id)
+            if (!circleId) {
+                // No circle found, redirect to onboarding
+                router.push("/app/onboarding")
+            }
+        }
+        checkCircle()
+    }, [router])
 
     const handleSaveMedia = async (blob: Blob) => {
         if (!title.trim()) {
@@ -95,6 +111,9 @@ function CreateStoryContent() {
         } catch (error: any) {
             console.error("Save error:", error)
             alert(`Error saving story: ${error.message}`)
+            if (error.message.includes("No circle found")) {
+                router.push("/app/onboarding")
+            }
         } finally {
             setIsSaving(false)
         }

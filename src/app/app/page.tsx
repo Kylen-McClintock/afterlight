@@ -33,9 +33,11 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground mb-4">Prompt: "Tell me about your parents."</p>
-                        <Button size="sm" variant="outline" className="w-full">
-                            Answer Now
-                        </Button>
+                        <Link href="/app/story/create?mode=text&promptId=daily-prompt">
+                            <Button size="sm" variant="outline" className="w-full">
+                                Answer Now
+                            </Button>
+                        </Link>
                     </CardContent>
                 </Card>
 
@@ -56,9 +58,11 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm font-medium mb-2">Morning Presence</p>
-                        <Button size="sm" variant="secondary" className="w-full">
-                            Start (2m)
-                        </Button>
+                        <Link href="/app/meaning">
+                            <Button size="sm" variant="secondary" className="w-full">
+                                Start (2m)
+                            </Button>
+                        </Link>
                     </CardContent>
                 </Card>
             </section>
