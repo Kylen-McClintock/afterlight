@@ -6,7 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PromptFilters } from "@/components/prompts/PromptFilters"
+import { CreatePromptDialog } from "@/components/prompts/CreatePromptDialog"
 import { useSearchParams, useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Mail, Send } from "lucide-react"
 
 interface PromptLibraryProps {
     onSelect: (prompt: any) => void
@@ -19,37 +23,103 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
     const [prompts, setPrompts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        const fetchPrompts = async () => {
-            setLoading(true)
-            const supabase = createClient()
-            let query = supabase
-                .from('prompt_library_global')
-                .select('*')
-                .limit(100)
+    // Invitation Dialog State
+    const [inviteOpen, setInviteOpen] = useState(false)
+    const [inviteEmails, setInviteEmails] = useState("")
+    const [selectedInvitePrompt, setSelectedInvitePrompt] = useState<any>(null)
 
-            if (category && category !== "All") {
-                query = query.contains('tags', [category])
-            }
+    const fetchPrompts = async () => {
+        setLoading(true)
+        const supabase = createClient()
 
-            const { data, error } = await query
-            if (error) console.error("Error fetching prompts:", error)
-            else setPrompts(data || [])
-            setLoading(false)
+        // 1. Fetch Global Prompts
+        let globalQuery = supabase
+            .from('prompt_library_global')
+            .select('*')
+            .limit(100)
+
+        if (category && category !== "All") {
+            globalQuery = globalQuery.contains('tags', [category])
         }
+
+        const { data: globalData, error: globalError } = await globalQuery
+        if (globalError) console.error("Error fetching global prompts:", globalError)
+
+        // 2. Fetch User Requests (Custom Prompts)
+        // Only if "All" or "Request" (if we had that category)
+        // For now, always append them at the top if no category or category matches "Custom"
+        let userPrompts: any[] = []
+        if (!category || category === 'All') {
+            const { data: userData } = await supabase
+                .from('prompt_requests')
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (userData) {
+                userPrompts = userData.map(p => ({
+                    id: p.id,
+                    title: p.prompt_text, // Map text to title for consistency
+                    prompt_text: p.prompt_text,
+                    tags: ['Custom'],
+                    is_custom: true
+                }))
+            }
+        }
+
+        const combined = [...(userPrompts || []), ...(globalData || [])]
+        setPrompts(combined)
+        setLoading(false)
+    }
+
+    useEffect(() => {
         fetchPrompts()
     }, [category])
 
+    const handleShareClick = (prompt: any, e: React.MouseEvent) => {
+        e.stopPropagation()
+        setSelectedInvitePrompt(prompt)
+        setInviteOpen(true)
+    }
+
+    const handleSendInvite = () => {
+        if (!inviteEmails) return
+
+        // MVP: Use mailto with specific emails
+        const subject = encodeURIComponent(`Question for you: ${selectedInvitePrompt?.title || 'A story prompt'}`)
+        const url = `${window.location.origin}/app/story/create?promptId=${selectedInvitePrompt?.id}`
+        const body = encodeURIComponent(`${selectedInvitePrompt?.prompt_text}\n\nI'd love for you to answer this using AfterLight:\n${url}`)
+
+        window.location.href = `mailto:${inviteEmails}?subject=${subject}&body=${body}`
+        setInviteOpen(false)
+        setInviteEmails("")
+    }
+
+    const handleGlobalInvite = () => {
+        // General invite to share stories
+        const subject = encodeURIComponent("Share your stories with me")
+        const url = `${window.location.origin}`
+        const body = encodeURIComponent(`I'm using AfterLight to preserve our family memories. I'd love for you to join me and share some of your own stories.\n\nCheck it out here: ${url}`)
+        window.location.href = `mailto:?subject=${subject}&body=${body}`
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Header Actions */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-heading font-bold">What's your story today?</h1>
                     <p className="text-muted-foreground">Choose a prompt or share a free-form thought.</p>
                 </div>
-                <Button size="lg" onClick={onFreeForm} className="w-full md:w-auto">
-                    Create Free Form
-                </Button>
+                <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                    <Button variant="outline" onClick={handleGlobalInvite}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Invite Friends
+                    </Button>
+                    <CreatePromptDialog onSuccess={fetchPrompts} />
+                    <Button onClick={onFreeForm}>
+                        Free Form
+                    </Button>
+                </div>
             </div>
 
             <PromptFilters />
@@ -65,12 +135,18 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
                                     <div className="space-y-2">
                                         <CardTitle className="text-lg">{prompt.title}</CardTitle>
                                         <div className="flex gap-2">
+                                            {prompt.is_custom && <Badge variant="default">Custom</Badge>}
                                             {prompt.tags && prompt.tags.map((tag: string) => (
                                                 <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                                             ))}
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="sm">Select</Button>
+                                    <div className="flex gap-2">
+                                        <Button variant="ghost" size="sm" onClick={(e) => handleShareClick(prompt, e)}>
+                                            Share
+                                        </Button>
+                                        <Button variant="ghost" size="sm">Select</Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -86,6 +162,38 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
                     </div>
                 )}
             </div>
+
+            {/* Share/Invite Dialog */}
+            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Ask a Friend</DialogTitle>
+                        <DialogDescription>
+                            Send this prompt to a friend or family member to answer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="p-4 bg-muted/30 rounded-md">
+                            <p className="font-medium text-sm">{selectedInvitePrompt?.title || selectedInvitePrompt?.prompt_text}</p>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">To (Email Addresses)</label>
+                            <Input
+                                placeholder="mom@example.com, brother@example.com"
+                                value={inviteEmails}
+                                onChange={(e) => setInviteEmails(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Separate multiple emails with commas.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleSendInvite} disabled={!inviteEmails}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Open Email App
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
