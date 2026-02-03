@@ -21,6 +21,7 @@ interface StorySession {
     relationship_label?: string | null
     story_assets: StoryAsset[]
     storyteller?: { display_name: string } | null
+    storyteller_user_id?: string | null
 }
 
 interface StoryCardProps {
@@ -32,7 +33,57 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const mainAsset = story.story_assets?.[0]
     const isGuest = currentUserId && story.storyteller_user_id && story.storyteller_user_id !== currentUserId
 
-    // ... (rest of logic) ...
+    const date = new Date(story.created_at).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })
+
+    // Helper to render preview
+    const renderPreview = () => {
+        if (!mainAsset) return null
+
+        if (mainAsset.asset_type === 'text') {
+            return (
+                <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3">
+                    "{mainAsset.text_content}"
+                </div>
+            )
+        }
+
+        if (mainAsset.asset_type === 'audio') {
+            return (
+                <div className="flex items-center gap-3 p-3 bg-secondary/20 rounded-md">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Play className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="h-1 bg-secondary rounded-full w-full">
+                            <div className="h-1 bg-primary rounded-full w-1/3"></div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {mainAsset.duration_seconds ? `${Math.floor(mainAsset.duration_seconds / 60)}:${(mainAsset.duration_seconds % 60).toString().padStart(2, '0')}` : "Audio Recording"}
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+
+        if (mainAsset.asset_type === 'video') {
+            return (
+                <div className="relative aspect-video bg-black/5 rounded-md flex items-center justify-center">
+                    <Video className="h-12 w-12 text-muted-foreground/50" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-12 w-12 rounded-full bg-white/90 shadow-sm flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
+                            <Play className="h-5 w-5 text-black ml-1" />
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        return null
+    }
 
     return (
         <Card className={`hover:shadow-md transition-shadow ${isGuest ? 'bg-indigo-50/50 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900' : ''}`}>
