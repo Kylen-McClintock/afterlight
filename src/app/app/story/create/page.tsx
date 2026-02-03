@@ -7,33 +7,75 @@ import { useState, Suspense, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Upload, Loader2, Save } from "lucide-react"
+import { ArrowLeft, Upload, Loader2, Save, Mic, Video, FileText } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PromptLibrary } from "@/components/prompts/PromptLibrary"
 
 function CreateStoryContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
 
-    // Default to 'audio' if null, but safe cast.
-    const modeParam = searchParams.get("mode")
-    const mode = (modeParam === "video" || modeParam === "text" || modeParam === "upload")
-        ? modeParam
-        : "audio"
+    // State 1: Mode & Prompt
+    // If promptId exists, we are in RECORDER mode.
+    // If mode param exists (e.g. ?mode=free), we are in RECORDER mode (Free form).
+    // Otherwise, we are in LIBRARY mode.
 
-    const promptId = searchParams.get("promptId")
-    // Simple UUID regex check
+    const urlPromptId = searchParams.get("promptId")
+    const urlMode = searchParams.get("mode")
+
+    // Check if we should show the recorder
+    const showRecorder = !!urlPromptId || !!urlMode
+
+    // If in recorder, what is the default tab?
+    // We can infer from `mode` param if it matches 'text'|'audio'|'video'|'upload'
+    // Default to 'audio'
+    const defaultTab = (urlMode === 'text' || urlMode === 'video' || urlMode === 'upload' || urlMode === 'audio') ? urlMode : 'audio'
+    const [activeTab, setActiveTab] = useState(defaultTab)
+
+    // Sync active tab with local state if URL changes (optional, but good for back button)
+    useEffect(() => {
+        if (urlMode && ['text', 'video', 'upload', 'audio'].includes(urlMode)) {
+            setActiveTab(urlMode)
+        }
+    }, [urlMode])
+
+    // Prompt Data Fetching (if promptId is present)
+    const [selectedPrompt, setSelectedPrompt] = useState<any>(null)
+
+    // UUID Validation
     const isValidUuid = (id: string | null) => {
         if (!id) return false
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     }
-    const safePromptId = isValidUuid(promptId) ? promptId : null
+    const safePromptId = isValidUuid(urlPromptId) ? urlPromptId : null
 
+    useEffect(() => {
+        const fetchPrompt = async () => {
+            if (!safePromptId) {
+                setSelectedPrompt(null)
+                return
+            }
+            const supabase = createClient()
+            // Try fetching from Global Library first (since we just support that for now in this flow)
+            const { data } = await supabase
+                .from('prompt_library_global')
+                .select('*')
+                .eq('id', safePromptId)
+                .single()
+
+            if (data) setSelectedPrompt(data)
+        }
+        fetchPrompt()
+    }, [safePromptId])
+
+    // Recorder State
     const [title, setTitle] = useState("")
     const [textContent, setTextContent] = useState("")
     const [file, setFile] = useState<File | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
-    // Helper to get active circle (MVP: fetch first circle user is in)
+    // Helper to get active circle
     const getActiveCircleId = async (supabase: any, userId: string) => {
         const { data } = await supabase
             .from('circle_memberships')
@@ -44,27 +86,24 @@ function CreateStoryContent() {
         return data?.circle_id
     }
 
-    // Check for circle on mount
-    useEffect(() => {
-        const checkCircle = async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return // layout handles auth redirect usually
+    const handleBackToLibrary = () => {
+        router.push("/app/story/create")
+    }
 
-            const circleId = await getActiveCircleId(supabase, user.id)
-            if (!circleId) {
-                // No circle found, redirect to onboarding
-                router.push("/app/onboarding")
-            }
-        }
-        checkCircle()
-    }, [router])
-
-    const handleSaveMedia = async (blob: Blob) => {
+    const handleUnifiedSave = async (mediaBlob?: Blob) => {
         if (!title.trim()) {
             alert("Please give your story a title.")
             return
         }
+        if (activeTab === 'text' && !textContent.trim()) {
+            alert("Please write your story.")
+            return
+        }
+        if (activeTab === 'upload' && !file) {
+            alert("Please select a file.")
+            return
+        }
+
         setIsSaving(true)
         const supabase = createClient()
 
@@ -76,255 +115,211 @@ function CreateStoryContent() {
             if (!circleId) throw new Error("No circle found. Please create one.")
 
             // 1. Create Session
+            const sessionData = {
+                circle_id: circleId,
+                title: title,
+                storyteller_user_id: user.id,
+                global_prompt_id: safePromptId,
+                visibility: 'shared_with_circle'
+            }
+
             const { data: session, error: sessionError } = await supabase
                 .from('story_sessions')
-                .insert({
-                    circle_id: circleId,
-                    title: title,
-                    storyteller_user_id: user.id,
-                    prompt_request_id: safePromptId,
-                    visibility: 'shared_with_circle'
-                })
+                .insert(sessionData)
                 .select()
                 .single()
 
             if (sessionError) throw sessionError
 
-            // 2. Upload File
-            const ext = mode === 'video' ? 'webm' : 'webm' // MediaRecorder usually webm
-            const fileName = `${session.id}/${Date.now()}.${ext}`
-            const { error: uploadError } = await supabase.storage
-                .from('stories')
-                .upload(fileName, blob)
+            // 2. Prepare Asset Data
+            let assetType = activeTab
+            let sourceType = 'browser_recording'
+            let storagePath = null
+            let mimeType = null
+            let textToSave = null
 
-            if (uploadError) throw uploadError
+            // Handle Upload/Media
+            if (activeTab === 'audio' || activeTab === 'video') {
+                if (!mediaBlob) throw new Error("No recording found")
+                const ext = 'webm'
+                const fileName = `${session.id}/${Date.now()}.${ext}`
+                const { error: uploadError } = await supabase.storage
+                    .from('stories')
+                    .upload(fileName, mediaBlob)
+                if (uploadError) throw uploadError
+
+                storagePath = fileName
+                mimeType = mediaBlob.type
+            } else if (activeTab === 'upload') {
+                if (!file) throw new Error("No file selected")
+                const ext = file.name.split('.').pop()
+                const fileName = `${session.id}/${Date.now()}.${ext}`
+                const { error: uploadError } = await supabase.storage
+                    .from('stories')
+                    .upload(fileName, file)
+                if (uploadError) throw uploadError
+
+                storagePath = fileName
+                mimeType = file.type
+                sourceType = 'file_upload'
+                // Refine asset type based on file
+                if (file.type.startsWith('video')) assetType = 'video'
+                else if (file.type.startsWith('audio')) assetType = 'audio'
+            } else if (activeTab === 'text') {
+                sourceType = 'text'
+                textToSave = textContent
+            }
 
             // 3. Create Asset
             const { error: assetError } = await supabase
                 .from('story_assets')
                 .insert({
                     story_session_id: session.id,
-                    asset_type: mode, // 'audio' or 'video'
-                    source_type: 'browser_recording',
-                    storage_path: fileName,
-                    mime_type: blob.type,
-                    duration_seconds: null // Could calculate if we tracked it
+                    asset_type: assetType,
+                    source_type: sourceType,
+                    storage_path: storagePath,
+                    mime_type: mimeType,
+                    text_content: textToSave
                 })
 
             if (assetError) throw assetError
 
             router.push("/app/timeline")
+
         } catch (error: any) {
             console.error("Save error:", error)
             alert(`Error saving story: ${error.message}`)
-            if (error.message.includes("No circle found")) {
-                router.push("/app/onboarding")
-            }
         } finally {
             setIsSaving(false)
         }
     }
 
-    const handleSaveText = async () => {
-        if (!title.trim() || !textContent.trim()) {
-            alert("Please add a title and story text.")
-            return
-        }
-        setIsSaving(true)
-        const supabase = createClient()
+    // --- RENDER ---
 
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error("Not authenticated")
-
-            const circleId = await getActiveCircleId(supabase, user.id)
-            if (!circleId) throw new Error("No circle found")
-
-            // 1. Create Session
-            const { data: session, error: sessionError } = await supabase
-                .from('story_sessions')
-                .insert({
-                    circle_id: circleId,
-                    title: title,
-                    storyteller_user_id: user.id,
-                    prompt_request_id: promptId || null
-                })
-                .select()
-                .single()
-
-            if (sessionError) throw sessionError
-
-            // 2. Create Asset (Text)
-            const { error: assetError } = await supabase
-                .from('story_assets')
-                .insert({
-                    story_session_id: session.id,
-                    asset_type: 'text',
-                    source_type: 'text',
-                    text_content: textContent
-                })
-
-            if (assetError) throw assetError
-
-            router.push("/app/timeline")
-        } catch (error: any) {
-            console.error("Save error:", error)
-            alert(`Error: ${error.message}`)
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    const handleSaveFile = async () => {
-        if (!title.trim() || !file) {
-            alert("Title and file are required.")
-            return
-        }
-        setIsSaving(true)
-        const supabase = createClient()
-
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error("Not authenticated")
-
-            const circleId = await getActiveCircleId(supabase, user.id)
-            if (!circleId) throw new Error("No circle found")
-
-            // 1. Create Session
-            const { data: session, error: sessionError } = await supabase
-                .from('story_sessions')
-                .insert({
-                    circle_id: circleId,
-                    title: title,
-                    storyteller_user_id: user.id,
-                    prompt_request_id: promptId || null
-                })
-                .select()
-                .single()
-
-            if (sessionError) throw sessionError
-
-            // 2. Upload
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${session.id}/${Date.now()}.${fileExt}`
-            const { error: uploadError } = await supabase.storage
-                .from('stories')
-                .upload(fileName, file)
-
-            if (uploadError) throw uploadError
-
-            // 3. Asset
-            const isVideo = file.type.startsWith('video')
-            const type = isVideo ? 'video' : 'audio'
-
-            const { error: assetError } = await supabase
-                .from('story_assets')
-                .insert({
-                    story_session_id: session.id,
-                    asset_type: type,
-                    source_type: 'file_upload',
-                    storage_path: fileName,
-                    mime_type: file.type
-                })
-
-            if (assetError) throw assetError
-
-            router.push("/app/timeline")
-        } catch (error: any) {
-            console.error("Save error:", error)
-            alert(`Error: ${error.message}`)
-        } finally {
-            setIsSaving(false)
-        }
+    if (!showRecorder) {
+        return (
+            <div className="max-w-5xl mx-auto">
+                <PromptLibrary
+                    onSelect={(prompt) => router.push(`/app/story/create?promptId=${prompt.id}`)}
+                    onFreeForm={() => router.push(`/app/story/create?mode=audio`)}
+                />
+            </div>
+        )
     }
 
     return (
-        <div className="space-y-6 max-w-2xl mx-auto">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <div className="space-y-6 max-w-2xl mx-auto animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="space-y-4">
+                <Button variant="ghost" size="sm" onClick={handleBackToLibrary} className="pl-0 gap-2">
                     <ArrowLeft className="h-4 w-4" />
+                    Back to Library
                 </Button>
-                <div>
-                    <h1 className="text-2xl font-bold font-heading capitalize">
-                        {mode === "upload" ? "Upload Media" :
-                            mode === "text" ? "Write Story" :
-                                `Record ${mode}`}
-                    </h1>
-                    <p className="text-muted-foreground">
-                        {promptId ? "Answering prompt..." : "Share a memory or thought."}
-                    </p>
-                </div>
+
+                {selectedPrompt ? (
+                    <div className="bg-primary/5 p-6 rounded-lg border border-primary/10">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Replying to</span>
+                        <h2 className="text-xl font-bold mt-1 pr-8">{selectedPrompt.title}</h2>
+                        <p className="text-muted-foreground mt-2">{selectedPrompt.prompt_text}</p>
+                    </div>
+                ) : (
+                    <div>
+                        <h1 className="text-2xl font-bold font-heading">Free Form Story</h1>
+                        <p className="text-muted-foreground">Share a memory, a thought, or a message for the future.</p>
+                    </div>
+                )}
             </div>
 
+            {/* Title Input */}
             <div className="space-y-2">
                 <label className="text-sm font-medium">Story Title</label>
                 <Input
-                    placeholder="e.g. The time we went to..."
+                    placeholder={selectedPrompt ? `Answering: ${selectedPrompt.title}` : "Give your story a title..."}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    className="text-lg"
                 />
             </div>
 
-            {/* Render based on mode */}
-            {(mode === "audio" || mode === "video") && (
-                <StoryRecorder mode={mode} onSave={handleSaveMedia} />
-            )}
+            {/* Unified Recorder Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-4">
+                    <TabsTrigger value="audio" className="gap-2"><Mic className="h-4 w-4" /> Audio</TabsTrigger>
+                    <TabsTrigger value="video" className="gap-2"><Video className="h-4 w-4" /> Video</TabsTrigger>
+                    <TabsTrigger value="text" className="gap-2"><FileText className="h-4 w-4" /> Text</TabsTrigger>
+                    <TabsTrigger value="upload" className="gap-2"><Upload className="h-4 w-4" /> Upload</TabsTrigger>
+                </TabsList>
 
-            {mode === "text" && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Your Story</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Textarea
-                            className="min-h-[300px]"
-                            placeholder="Start writing..."
-                            value={textContent}
-                            onChange={(e) => setTextContent(e.target.value)}
-                        />
-                    </CardContent>
-                    <CardFooter className="justify-end">
-                        <Button onClick={handleSaveText} disabled={isSaving || !textContent.trim()}>
-                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Story
-                        </Button>
-                    </CardFooter>
-                </Card>
-            )}
+                <TabsContent value="audio" className="mt-0">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <StoryRecorder mode="audio" onSave={handleUnifiedSave} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-            {mode === "upload" && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Select File</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center gap-6 py-10 border-2 border-dashed m-6 rounded-lg">
-                        <Upload className="h-12 w-12 text-muted-foreground" />
-                        <div className="text-center space-y-2">
-                            <p className="text-sm font-medium">Click to browse or drag and drop</p>
-                            <p className="text-xs text-muted-foreground">Audio or Video files up to 50MB</p>
-                        </div>
-                        <Input
-                            type="file"
-                            accept="audio/*,video/*"
-                            onChange={(e) => setFile(e.target.files?.[0] || null)}
-                            className="max-w-xs"
-                        />
-                    </CardContent>
-                    <CardFooter className="justify-end">
-                        <Button onClick={handleSaveFile} disabled={isSaving || !file}>
-                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Upload
-                        </Button>
-                    </CardFooter>
-                </Card>
-            )}
+                <TabsContent value="video" className="mt-0">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <StoryRecorder mode="video" onSave={handleUnifiedSave} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="text" className="mt-0">
+                    <Card>
+                        <CardHeader><CardTitle>Write your story</CardTitle></CardHeader>
+                        <CardContent>
+                            <Textarea
+                                className="min-h-[300px] resize-none focus-visible:ring-1"
+                                placeholder="Start typing here..."
+                                value={textContent}
+                                onChange={(e) => setTextContent(e.target.value)}
+                            />
+                        </CardContent>
+                        <CardFooter className="justify-end bg-muted/20 py-4">
+                            <Button onClick={() => handleUnifiedSave()} disabled={isSaving || !textContent.trim()}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Story
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="upload" className="mt-0">
+                    <Card>
+                        <CardHeader><CardTitle>Upload Media</CardTitle></CardHeader>
+                        <CardContent className="flex flex-col items-center gap-6 py-12 border-2 border-dashed border-muted m-6 rounded-lg bg-muted/5">
+                            <div className="p-4 rounded-full bg-primary/10">
+                                <Upload className="h-8 w-8 text-primary" />
+                            </div>
+                            <div className="text-center space-y-1">
+                                <p className="text-sm font-medium">Click to browse or drag and drop</p>
+                                <p className="text-xs text-muted-foreground">MP4, MOV, MP3, WAV up to 50MB</p>
+                            </div>
+                            <Input
+                                type="file"
+                                accept="audio/*,video/*"
+                                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                className="max-w-xs cursor-pointer"
+                            />
+                        </CardContent>
+                        <CardFooter className="justify-end bg-muted/20 py-4">
+                            <Button onClick={() => handleUnifiedSave()} disabled={isSaving || !file}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Upload & Save
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
 
 export default function CreateStoryPage() {
     return (
-        <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+        <Suspense fallback={<div className="p-8 text-center animate-pulse">Loading Story Hub...</div>}>
             <CreateStoryContent />
         </Suspense>
     )
