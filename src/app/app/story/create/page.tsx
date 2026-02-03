@@ -21,6 +21,12 @@ function CreateStoryContent() {
         : "audio"
 
     const promptId = searchParams.get("promptId")
+    // Simple UUID regex check
+    const isValidUuid = (id: string | null) => {
+        if (!id) return false
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    }
+    const safePromptId = isValidUuid(promptId) ? promptId : null
 
     const [title, setTitle] = useState("")
     const [textContent, setTextContent] = useState("")
@@ -76,7 +82,7 @@ function CreateStoryContent() {
                     circle_id: circleId,
                     title: title,
                     storyteller_user_id: user.id,
-                    prompt_request_id: promptId || null,
+                    prompt_request_id: safePromptId,
                     visibility: 'shared_with_circle'
                 })
                 .select()
