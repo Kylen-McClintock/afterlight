@@ -21,6 +21,8 @@ export default async function TimelinePage() {
         console.error("Error fetching timeline:", error)
     }
 
+    const { data: { user } } = await supabase.auth.getUser()
+
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
             <div className="flex justify-between items-center">
@@ -41,7 +43,7 @@ export default async function TimelinePage() {
 
                 {stories && stories.length > 0 ? (
                     stories.map((story: any) => (
-                        <StoryCard key={story.id} story={story} />
+                        <StoryCard key={story.id} story={story} currentUserId={user?.id} />
                     ))
                 ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/10">
