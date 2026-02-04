@@ -293,8 +293,9 @@ function CreateStoryContent() {
                                         placeholder="YYYY"
                                         className="bg-background"
                                         onChange={(e) => {
-                                            // Store as YYYY-01-01 for DB but mark granularity as year
-                                            setStoryDate(`${e.target.value}-01-01`)
+                                            // Store as YYYY-01-02 to avoid timezone shifts back to previous year
+                                            // when parsed as UTC midnight in Western hemispheres
+                                            setStoryDate(`${e.target.value}-01-02`)
                                         }}
                                     />
                                 </div>
