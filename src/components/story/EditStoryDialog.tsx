@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/client"
-import { Calendar as CalendarIcon, Loader2, X, Upload, Mic, Play, Pause, Wand2 } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, X, Upload, Mic, Play, Pause, Wand2, UserPlus, Users, FileText } from "lucide-react"
 import { StoryRecorder } from "./StoryRecorder"
 import { StoryImage } from "@/components/timeline/StoryImage"
 
@@ -424,7 +424,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                     story.media.some((m: any) => m.type === 'audio') ? (
                                         <div className="flex flex-col items-center justify-center h-full w-full p-2">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <Button variant="ghost" size="icon" onClick={() => audioRef.current?.pause()} disabled={!isPlaying}>
+                                                <Button variant="ghost" size="icon" onClick={() => audioRef.current?.pause()} disabled={!isPlaying} type="button">
                                                     <Pause className="h-4 w-4" />
                                                 </Button>
                                                 <span className="text-xs text-muted-foreground ml-2">Audio Recording Attached</span>
@@ -435,6 +435,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                 className="ml-auto gap-2"
                                                 onClick={handleTranscribe}
                                                 disabled={transcribing}
+                                                type="button"
                                             >
                                                 {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                                                 {transcribing ? "Transcribing..." : "Transcribe"}

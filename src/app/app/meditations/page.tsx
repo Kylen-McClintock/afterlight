@@ -189,11 +189,11 @@ function QuoteCard({ quote }: { quote: any }) {
                     </CardContent>
                 </Card>
             </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
+            <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-6 pb-2">
                     <DialogTitle>Daily Wisdom</DialogTitle>
                 </DialogHeader>
-                <div className="py-6">
+                <div className="flex-1 overflow-y-auto p-6 pt-4">
                     <blockquote className="italic text-xl font-serif mb-6 leading-relaxed border-l-4 pl-4 border-primary/20">
                         "{quote.quote_text}"
                     </blockquote>
@@ -204,10 +204,12 @@ function QuoteCard({ quote }: { quote: any }) {
                      or "Add to Plan" as a custom item later. 
                      For now, I'll add a 'Copy to Clipboard' button as a useful action.
                   */}
-                <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(`"${quote.quote_text}" — ${quote.author}`)}>
-                        Copy Text
-                    </Button>
+                <div className="p-6 pt-4 border-t bg-background">
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(`"${quote.quote_text}" — ${quote.author}`)}>
+                            Copy Text
+                        </Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

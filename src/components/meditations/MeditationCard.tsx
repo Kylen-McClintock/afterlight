@@ -161,46 +161,51 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                         <span className="sr-only">Expand</span>
                     </button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-xl z-50">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-xl z-50 max-h-[85vh] flex flex-col p-0 gap-0">
+                    <DialogHeader className="p-6 pb-2">
                         <DialogTitle>{meditation.title}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-6 py-4">
-                        {meditation.type === 'wisdom' && meditation.metadata?.useful_thought && (
-                            <div className="bg-primary/5 p-4 rounded-md border border-primary/10">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Useful Thought</span>
-                                <p className="text-lg font-medium text-primary italic">"{meditation.metadata.useful_thought}"</p>
-                            </div>
-                        )}
 
-                        <div className="text-base leading-relaxed text-muted-foreground">
-                            {meditation.description}
+                    <div className="flex-1 overflow-y-auto p-6 pt-2">
+                        <div className="space-y-6">
+                            {meditation.type === 'wisdom' && meditation.metadata?.useful_thought && (
+                                <div className="bg-primary/5 p-4 rounded-md border border-primary/10">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Useful Thought</span>
+                                    <p className="text-lg font-medium text-primary italic">"{meditation.metadata.useful_thought}"</p>
+                                </div>
+                            )}
+
+                            <div className="text-base leading-relaxed text-muted-foreground">
+                                {meditation.description}
+                            </div>
+
+                            {/* Evidence Link - Only in expanded view */}
+                            {meditation.type === 'wisdom' && meditation.metadata?.evidence_url && (
+                                <div className="pt-4 border-t">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Scientific Evidence</span>
+                                    <a
+                                        href={meditation.metadata.evidence_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-primary hover:underline flex items-center gap-2"
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                        {meditation.metadata.evidence_title || "View Research Source"}
+                                    </a>
+                                </div>
+                            )}
+
+                            {(meditation.content && (meditation.type === 'text' || meditation.type === 'poem')) && (
+                                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                                    {meditation.content}
+                                </div>
+                            )}
                         </div>
+                    </div>
 
-                        {/* Evidence Link - Only in expanded view */}
-                        {meditation.type === 'wisdom' && meditation.metadata?.evidence_url && (
-                            <div className="pt-4 border-t">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Scientific Evidence</span>
-                                <a
-                                    href={meditation.metadata.evidence_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-primary hover:underline flex items-center gap-2"
-                                >
-                                    <Sparkles className="h-4 w-4" />
-                                    {meditation.metadata.evidence_title || "View Research Source"}
-                                </a>
-                            </div>
-                        )}
-
-                        {(meditation.content && (meditation.type === 'text' || meditation.type === 'poem')) && (
-                            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                                {meditation.content}
-                            </div>
-                        )}
-
-                        {/* Interactions in Expanded View */}
-                        <div className="pt-6 mt-4 border-t flex flex-col gap-4">
+                    {/* Interactions in Fixed Footer */}
+                    <div className="p-6 pt-4 border-t bg-background z-10">
+                        <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
                                     {[1, 2, 3, 4, 5].map((star) => (
