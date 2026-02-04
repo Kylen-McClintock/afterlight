@@ -448,7 +448,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                     </div>
                 </div>
 
-                <DialogFooter className="mt-6">
+                <DialogFooter className="mt-6 flex justify-between items-center">
+                    <span className="text-[10px] text-muted-foreground mr-auto">vDebug 3.0</span>
                     <Button onClick={handleSave} disabled={loading}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes
