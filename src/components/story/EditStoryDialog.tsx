@@ -31,13 +31,9 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [loading, setLoading] = useState(false)
 
     // Form State
-    // Default title to story.title -> prompt.title -> "Untitled"
     const [title, setTitle] = useState(story.title || (story.prompt_request ? story.prompt_request.prompt_text : "") || "")
-    // Note: story prop might not have prompt_request directly if not fetched carefully.
-    // Let's assume passed story object has it or we rely on user input.
-    // Actually, `EditStoryDialog` receives `story`. We need to verify `story` has `prompt_request`.
 
-    // If the component mounts and we want to auto-fill title if empty:
+    // Auto-fill title if empty
     useEffect(() => {
         if (!title && story.prompt_request?.prompt_text) {
             setTitle(story.prompt_request.prompt_text)
@@ -48,21 +44,13 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [dateGranularity, setDateGranularity] = useState<string>(story.date_granularity || "exact")
     const [storyDate, setStoryDate] = useState<string>(
         story.story_date ? (() => {
-            // Parse manually to avoid timezone shift when creating initial state
-            // story.story_date is YYYY-MM-DD or ISO
             const dateStr = story.story_date.split('T')[0]
-            // If we just use dateStr, the input type="date" handles it correctly as value="YYYY-MM-DD"
-            // The issue was likely how we derived it or how new Date() shifted it previously.
             return dateStr
         })() : ""
     )
-    // Using string for date input (YYYY-MM-DD)
 
-    // For fuzzy dates (Year/Season), we might want separate inputs, 
-    // but for MVP let's store standard date and use granularity to decide display.
-    // If granularity is 'year', we default to Jan 1st of that year in DB but display only year.
     const [yearInput, setYearInput] = useState<string>(story.story_date ? parseInt(story.story_date.split('-')[0]).toString() : new Date().getFullYear().toString())
-    const [seasonInput, setSeasonInput] = useState<string>("Summer")
+    // const [seasonInput, setSeasonInput] = useState<string>("Summer") 
 
     // Relationship State
     const [relationshipLabel, setRelationshipLabel] = useState<string>(story.relationship_label || "None")
@@ -94,7 +82,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         const fetchMembers = async () => {
             if (!story.circle_id) return
             const supabase = createClient()
-            // Fetch members and their profiles
             const { data } = await supabase
                 .from('circle_memberships')
                 .select('user_id, profile:user_id(display_name, avatar_url)')
@@ -116,23 +103,19 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [transcribing, setTranscribing] = useState(false)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const [photos, setPhotos] = useState<any[]>(story.story_assets?.filter((a: any) => a.asset_type === 'photo') || [])
-    // Initialize audio from story_assets OR story.media. 
-    // story.media is usually a processed array with 'url'. story.story_assets has 'storage_path'.
-    // We try to find audio in either.
+
     const [audioAssets, setAudioAssets] = useState<any[]>(() => {
         const fromAssets = story.story_assets?.filter((a: any) => a.asset_type === 'audio') || []
         const fromMedia = story.media?.filter((m: any) => m.type === 'audio') || []
-        // Prefer media if available as it likely has URLs
         return fromMedia.length > 0 ? fromMedia : fromAssets
     })
 
-    // Sync state if story updates (e.g. parent router.refresh)
+    // Sync state if story updates 
     useEffect(() => {
         const fromAssets = story.story_assets?.filter((a: any) => a.asset_type === 'audio') || []
         const fromMedia = story.media?.filter((m: any) => m.type === 'audio') || []
         const updated = fromMedia.length > 0 ? fromMedia : fromAssets
 
-        // Only update if length differs or URLs differ to avoid loops (simple check)
         if (updated.length !== audioAssets.length) {
             setAudioAssets(updated)
         }
@@ -144,16 +127,9 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
         let finalDate = storyDate
         if (dateGranularity === 'year') {
-            // For year only, set to Jan 2nd to avoid timezone shifts back to previous year
             finalDate = `${yearInput}-01-02`
         }
-        // If exact and empty, maybe set null? Or is it required? 
-        // If empty, let's keep it null if allowed.
         if (!finalDate && dateGranularity === 'exact') finalDate = null as any
-
-
-        // Ensure finalDate is either a valid string or null
-        // Postgres accepts null for Date column.
 
         console.log("Saving Story:", { title, finalDate, dateGranularity, id: story.id })
 
@@ -189,7 +165,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         const fileName = `${story.id}/${Math.random()}.${fileExt}`
         const filePath = `${fileName}`
 
-        // 1. Upload to Storage
         const { error: uploadError } = await supabase.storage
             .from('stories')
             .upload(filePath, file)
@@ -201,8 +176,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             return
         }
 
-        // 2. Create Asset Record
-        console.log("Inserting Asset Record for:", filePath)
         const { data: assetData, error: dbError } = await supabase
             .from('story_assets')
             .insert({
@@ -222,14 +195,13 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             setPhotos([...photos, assetData])
         }
         setUploading(false)
-        e.target.value = "" // Reset input
+        e.target.value = ""
     }
 
     const [isPlaying, setIsPlaying] = useState(false)
 
     const handleTranscribe = async () => {
-        // Find audio URL
-        const audioMedia = audioAssets[0] // Use local state
+        const audioMedia = audioAssets[0]
         if (!audioMedia?.url) {
             alert("No audio URL found. You may need to reload to get the signed URL.")
             return
@@ -247,36 +219,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             if (data.error) throw new Error(data.error)
 
             if (data.text) {
-                const note = data.text
                 const supabase = createClient()
-                // Auto-save as a text asset or append to content?
-                // The prompt said "Save transcript to Story content (or asset)"
-                // Let's prompt user or just save it. 
-                // The implementation plan said "append or replace the content".
-                // In this file, content is just one part. 
-                // BUT wait, this dialog doesn't seem to have a `content` field visible in the form?
-                // Looking at lines 219-400... 
-                // It has Title, Location, Date, Photos.
-                // It has "Add Content" -> Text Note.
-                // It does NOT have a main "Story Text" body editor visible in the specific lines I saw?
-                // Let me check lines 220-300 again.
-                // Title (223).
-                // Location (229).
-                // Shared With (233).
-                // Relationship (275).
-                // Date (300).
-                // Photos (337).
-                // Add Content (372).
-
-                // Ah, this dialog might be metadata only?
-                // But `handleSave` updates: title, story_date, location, relationship_label.
-                // It does NOT update `content`.
-                // However, there is "Add Note" (Line 406) which inserts into `story_assets` (type=text).
-
-                // So, for transcription, we should probably insert a NEW `story_asset` of type `text` (or `transcript`).
-                // OR append to an existing one?
-                // Let's insert a new text asset with the transcript.
-
                 await supabase.from('story_assets').insert({
                     story_session_id: story.id,
                     asset_type: 'text',
@@ -285,8 +228,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 })
 
                 alert("Transcription complete! Added as a note.")
-                onSuccess() // Refresh to show it?
-                // Ideally we'd update local state but onSuccess triggers refresh in parent ideally.
+                onSuccess()
             }
         } catch (error) {
             console.error("Transcription failed", error)
@@ -295,8 +237,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             setTranscribing(false)
         }
     }
-
-    // Helper to delete photo? (Maybe later)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -312,13 +252,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 </DialogHeader>
 
                 <div className="grid gap-6 py-4">
-                    {/* Title */}
                     <div className="space-y-2">
                         <Label>Title</Label>
                         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Story Title" />
                     </div>
 
-                    {/* Location */}
                     <div className="space-y-2">
                         <Label>Location (Optional)</Label>
                         <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Grandma's House, Paris" />
@@ -403,8 +341,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 <SelectContent>
                                     <SelectItem value="exact">Exact Date</SelectItem>
                                     <SelectItem value="year">Year Only</SelectItem>
-                                    {/* <SelectItem value="season">Season & Year</SelectItem> */}
-                                    {/* keeping it simple for now */}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -455,7 +391,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                 <span className="text-xs text-muted-foreground font-medium">Recorded</span>
                                             </div>
 
-                                            {/* Explicit Transcribe Button */}
+                                            {/* Explicit Transcribe Button - ALWAYS VISIBLE */}
                                             <Button
                                                 variant="secondary"
                                                 size="sm"
@@ -463,6 +399,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                 onClick={handleTranscribe}
                                                 disabled={transcribing}
                                                 type="button"
+                                                title="Convert audio to text"
                                             >
                                                 {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                                                 {transcribing ? "..." : "Transcribe"}
@@ -478,10 +415,20 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             />
                                         </div>
                                     ) : (
-                                        <>
+                                        <div className="flex flex-col items-center justify-center h-full w-full">
                                             <PlusIcon className="h-6 w-6 text-muted-foreground mb-1" />
                                             <span className="text-[10px] text-muted-foreground font-medium">Add Photo</span>
-                                        </>
+                                            {/* Disabled Transcribe when empty so user sees it */}
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-full text-[10px] h-6 mt-1 opacity-50"
+                                                disabled
+                                                type="button"
+                                            >
+                                                <Wand2 className="h-3 w-3 mr-1" /> Transcribe
+                                            </Button>
+                                        </div>
                                     )
                                 )}
                                 <input
@@ -496,12 +443,10 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                     </div>
                 </div>
 
-                {/* Add Note Section */}
                 <div className="pt-4 border-t space-y-4">
                     <div className="flex flex-col gap-2">
                         <Label className="block">Add Content</Label>
                         <div className="flex flex-wrap gap-2">
-                            {/* Add Note */}
                             <Button variant="outline" size="sm" onClick={async () => {
                                 const note = prompt("Enter your note:")
                                 if (!note) return
@@ -520,7 +465,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 Text Note
                             </Button>
 
-                            {/* Add Collection */}
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="sm">
@@ -536,7 +480,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 </DialogContent>
                             </Dialog>
 
-                            {/* Add Recording */}
                             <Dialog open={recorderOpen} onOpenChange={setRecorderOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="sm">
@@ -558,7 +501,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             return
                                         }
 
-                                        // Get public URL for immediate playback capability if needed (or just use blob logic if we refined it, but here we save to DB)
                                         const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(fileName)
 
                                         const { data: newAsset, error: dbError } = await supabase.from('story_assets').insert({
@@ -576,16 +518,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                         }
 
                                         if (newAsset) {
-                                            // Optimistically update local state so UI shows it immediately
-                                            // We add a 'url' property to mimic what the UI expects if it looks for 'url'
                                             const assetWithUrl = { ...newAsset, url: publicUrl }
                                             setAudioAssets([assetWithUrl])
                                             alert("Audio saved! Transcribing now...")
-
-                                            // Close recorder dialog immediately
                                             setRecorderOpen(false)
 
-                                            // Auto-Transcribe
                                             setTranscribing(true)
                                             try {
                                                 const response = await fetch('/api/transcribe', {
@@ -607,7 +544,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                 console.error("Auto-transcription failed", err)
                                             } finally {
                                                 setTranscribing(false)
-                                                // Close dialogs and refresh parents only AFTER everything
                                                 onSuccess()
                                             }
                                         }
@@ -630,7 +566,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     )
 }
 
-// Helper Component for Collections
 function CollectionSelector({ storyId }: { storyId: string }) {
     const [collections, setCollections] = useState<any[]>([])
     const [selected, setSelected] = useState("")
@@ -726,7 +661,6 @@ function RecipientSelector({ storyId, existingMembers, onAdd }: { storyId: strin
         if (error) {
             alert("Error adding recipient")
         } else {
-            // Optimistic update structure
             const newRecip = {
                 ...data,
                 profile: existingMembers.find(m => m.user_id === selectedMember)
