@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Upload, UserPlus, Search, Mail, Phone, Tag, Edit2, Trash2 } from "lucide-react"
+import { Loader2, Upload, UserPlus, Search, Mail, Phone, Tag, Edit2, Trash2, Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -134,8 +134,51 @@ function ContactCard({ contact, onUpdate }: { contact: any, onUpdate: () => void
                         ))}
                     </div>
                 )}
+
+                <div className="mt-4 pt-4 border-t flex justify-end">
+                    <AddToPlanButton connectionId={contact.id} />
+                </div>
             </CardContent>
         </Card>
+    )
+}
+
+function AddToPlanButton({ connectionId }: { connectionId: string }) {
+    const [loading, setLoading] = useState(false)
+
+    const addToPlan = async () => {
+        setLoading(true)
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        // Find active plan
+        const { data: plan } = await supabase
+            .from('weekly_plans')
+            .select('id')
+            .eq('user_id', user?.id)
+            .eq('is_active', true)
+            .limit(1)
+            .single()
+
+        if (plan) {
+            await supabase.from('weekly_plan_items').insert({
+                plan_id: plan.id,
+                item_type: 'connection',
+                connection_id: connectionId,
+                status: 'pending'
+            })
+            alert("Added to your weekly plan!")
+        } else {
+            alert("No active weekly plan found.")
+        }
+        setLoading(false)
+    }
+
+    return (
+        <Button variant="ghost" size="sm" className="text-xs h-7" onClick={addToPlan} disabled={loading}>
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
+            Add to Plan
+        </Button>
     )
 }
 

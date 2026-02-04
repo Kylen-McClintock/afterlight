@@ -54,7 +54,8 @@ export function WeeklyPlanWidget() {
                 .select(`
                     *,
                     meditation:meditation_id(title, type),
-                    prompt:prompt_id(title)
+                    prompt:prompt_id(title),
+                    connection:connection_id(first_name, last_name)
                 `)
                 .eq('plan_id', currentPlan.id)
                 .order('sort_order', { ascending: true })
@@ -88,20 +89,19 @@ export function WeeklyPlanWidget() {
         if (item.custom_text) return item.custom_text
         if (item.meditation) return `Meditation: ${item.meditation.title}`
         if (item.prompt) return `Story: ${item.prompt.title}`
+        if (item.connection) return `Connect with ${item.connection.first_name} ${item.connection.last_name || ''}`
         if (item.item_type === 'bucket_list') return "Work on Bucket List"
         return "Unknown Item"
     }
 
-    // Helper to handle click action (e.g. go to meditation)
+    // Helper to handle click action
     const handleItemClick = (item: any) => {
         if (item.meditation_id) {
-            // Open meditation modal or page? For now, we don't have a page.
-            // Maybe just alert or router push if we had a page.
-            // Let's assume we might have a route later.
-            // For now, no-op or simple alert if it's not implemented.
-            router.push(`/app/meditations/${item.meditation_id}`)
+            router.push(`/app/meditations/${item.meditation_id}`) // Future proofing, currently no single page
         } else if (item.prompt_id) {
             router.push(`/app/story/create?promptId=${item.prompt_id}`)
+        } else if (item.connection_id) {
+            router.push(`/app/connections`)
         }
     }
 

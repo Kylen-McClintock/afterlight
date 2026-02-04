@@ -10,7 +10,7 @@ import { CreatePromptDialog } from "@/components/prompts/CreatePromptDialog"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Mail, Send } from "lucide-react"
+import { Mail, Send, Plus, Loader2 } from "lucide-react"
 import { CollectionManager } from "@/components/collections/CollectionManager"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -229,7 +229,8 @@ ${userName}`
                                                 <Button variant="ghost" size="sm" onClick={(e) => handleShareClick(prompt, e)}>
                                                     Share
                                                 </Button>
-                                                <Button variant="ghost" size="sm">Select</Button>
+                                                <Button variant="ghost" size="sm" onClick={() => onSelect(prompt)}>Select</Button>
+                                                <AddToPlanButton promptId={prompt.id} />
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -285,5 +286,45 @@ ${userName}`
                 </TabsContent>
             </Tabs>
         </div>
+    )
+}
+
+function AddToPlanButton({ promptId }: { promptId: string }) {
+    const [loading, setLoading] = useState(false)
+
+    const addToPlan = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setLoading(true)
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        // Find active plan
+        const { data: plan } = await supabase
+            .from('weekly_plans')
+            .select('id')
+            .eq('user_id', user?.id)
+            .eq('is_active', true)
+            .limit(1)
+            .single()
+
+        if (plan) {
+            await supabase.from('weekly_plan_items').insert({
+                plan_id: plan.id,
+                item_type: 'prompt',
+                prompt_id: promptId,
+                status: 'pending'
+            })
+            alert("Added to your weekly plan!")
+        } else {
+            alert("No active weekly plan found.")
+        }
+        setLoading(false)
+    }
+
+    return (
+        <Button variant="ghost" size="sm" onClick={addToPlan} disabled={loading} className="gap-1">
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+            <span className="sr-only sm:not-sr-only sm:inline-block">Plan</span>
+        </Button>
     )
 }
