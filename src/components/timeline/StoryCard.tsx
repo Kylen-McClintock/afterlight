@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, FileText, Image as ImageIcon, Video, ExternalLink } from "lucide-react"
+import { Play, FileText, Image as ImageIcon, Video, ExternalLink, MapPin } from "lucide-react"
 import Link from "next/link"
 import { MediaPlayer } from "./MediaPlayer"
 
@@ -20,7 +20,10 @@ interface StorySession {
     title: string | null
     prompt_request_id?: string | null
     created_at: string
+    story_date?: string | null
+    date_granularity?: string | null
     relationship_label?: string | null
+    location?: string | null
     categories?: string[] | null
     story_assets: StoryAsset[]
     storyteller?: { display_name: string } | null
@@ -36,11 +39,19 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const mainAsset = story.story_assets?.[0]
     const isGuest = currentUserId && story.storyteller_user_id && story.storyteller_user_id !== currentUserId
 
-    const date = new Date(story.created_at).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    })
+    // Determine display date
+    let displayDate = ""
+    const dateObj = new Date(story.story_date || story.created_at)
+
+    if (story.date_granularity === 'year') {
+        displayDate = dateObj.getFullYear().toString()
+    } else {
+        displayDate = dateObj.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+    }
 
     // Helper to render preview
     const renderPreview = () => {
@@ -82,19 +93,38 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{date}</span>
-                            {story.relationship_label && (
-                                <>
-                                    <span>•</span>
-                                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{story.relationship_label}</Badge>
-                                </>
-                            )}
+                        <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{displayDate}</span>
+                                {story.relationship_label && (
+                                    <>
+                                        <span>•</span>
+                                        <Badge variant="outline" className="text-[10px] h-5 px-1.5">{story.relationship_label}</Badge>
+                                    </>
+                                )}
+                                {story.location && (
+                                    <>
+                                        <span>•</span>
+                                        <span className="flex items-center gap-0.5">
+                                            <MapPin className="h-3 w-3" />
+                                            {story.location}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            {/* Creation Date (Small) */}
+                            <span className="text-[10px] text-muted-foreground/60">
+                                Added {new Date(story.created_at).toLocaleDateString()}
+                            </span>
+                        </div>
+
+                        <div className="pt-1">
                             {story.categories && story.categories.map((cat: string) => (
-                                <Badge key={cat} variant="secondary" className="text-[10px] h-5 px-1.5 ml-1">{cat}</Badge>
+                                <Badge key={cat} variant="secondary" className="text-[10px] h-5 px-1.5 mr-1 mb-1">{cat}</Badge>
                             ))}
                         </div>
-                        <CardTitle className="text-xl leading-tight">
+
+                        <CardTitle className="text-xl leading-tight mt-1">
                             {story.title || "Untitled Story"}
                         </CardTitle>
                         {story.storyteller && (

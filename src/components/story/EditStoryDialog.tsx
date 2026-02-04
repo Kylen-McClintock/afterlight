@@ -30,6 +30,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
     // Form State
     const [title, setTitle] = useState(story.title || "")
+
+    const [location, setLocation] = useState(story.location || "")
     const [dateGranularity, setDateGranularity] = useState<string>(story.date_granularity || "exact")
     const [storyDate, setStoryDate] = useState<string>(story.story_date || "")
     // Using string for date input (YYYY-MM-DD)
@@ -82,6 +84,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 title: title,
                 story_date: finalDate,
                 date_granularity: dateGranularity,
+
+                location: location,
                 relationship_label: relationshipLabel === "None" ? null : relationshipLabel
             })
             .eq('id', story.id)
@@ -160,7 +164,13 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                     {/* Title */}
                     <div className="space-y-2">
                         <Label>Title</Label>
-                        <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Story Title" />
+                    </div>
+
+                    {/* Location */}
+                    <div className="space-y-2">
+                        <Label>Location (Optional)</Label>
+                        <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Grandma's House, Paris" />
                     </div>
 
                     {/* Relationship/Author */}
