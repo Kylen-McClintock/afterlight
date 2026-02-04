@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/client"
 import { Loader2, Upload, Image as ImageIcon, X, FileText, Mic, Users, UserPlus } from "lucide-react"
 import { StoryRecorder } from "./StoryRecorder"
+import { StoryImage } from "@/components/timeline/StoryImage"
 
 interface EditStoryDialogProps {
     story: any
@@ -338,8 +339,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                         <div className="grid grid-cols-3 gap-2">
                             {photos.map((photo: any) => (
                                 <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden bg-muted border">
-                                    <img
-                                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${photo.storage_path}`}
+                                    <StoryImage
+                                        storagePath={photo.storage_path}
                                         alt="Story attachment"
                                         className="w-full h-full object-cover"
                                     />
