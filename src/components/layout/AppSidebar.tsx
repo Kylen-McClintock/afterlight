@@ -9,10 +9,9 @@ import {
     Library, // Collections
     Lightbulb, // Meaning
     MessageSquarePlus, // Prompts
-    Settings,
-    LogOut,
     Menu,
-    X
+    X,
+    Users
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -21,8 +20,9 @@ const navItems = [
     { href: "/app", label: "Home", icon: Home },
     { href: "/app/timeline", label: "Timeline", icon: BookOpen },
     { href: "/app/collections", label: "Collections", icon: Library },
+    { href: "/app/connections", label: "Connections", icon: Users },
     { href: "/app/prompts", label: "Prompts", icon: MessageSquarePlus },
-    { href: "/app/meaning", label: "Meaning", icon: Lightbulb },
+    { href: "/app/meditations", label: "Meaning", icon: Lightbulb },
     { href: "/app/settings", label: "Settings", icon: Settings },
 ]
 

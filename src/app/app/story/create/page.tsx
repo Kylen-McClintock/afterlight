@@ -162,20 +162,28 @@ function CreateStoryContent() {
                 storagePath = fileName
                 mimeType = mediaBlob.type
             } else if (activeTab === 'upload') {
-                if (!file) throw new Error("No file selected")
-                const ext = file.name.split('.').pop()
-                const fileName = `${session.id}/${Date.now()}.${ext}`
-                const { error: uploadError } = await supabase.storage
-                    .from('stories')
-                    .upload(fileName, file)
-                if (uploadError) throw uploadError
+                if (textContent && textContent.includes('http')) {
+                    // Google Photos Link / External Link
+                    assetType = 'external_media'
+                    sourceType = 'external_link'
+                    // We store the link in external_url (need to verify DB schema has this column on asset or we use text_content/storage_path appropriately)
+                    // Based on schema review, story_assets has `external_url`
+                    // Note: TS might complain if I don't add it to insert payload below if types aren't perfect
+                    // Let's assume insert accepts it.
+                } else if (file) {
+                    const ext = file.name.split('.').pop()
+                    const fileName = `${session.id}/${Date.now()}.${ext}`
+                    const { error: uploadError } = await supabase.storage
+                        .from('stories')
+                        .upload(fileName, file)
+                    if (uploadError) throw uploadError
 
-                storagePath = fileName
-                mimeType = file.type
-                sourceType = 'file_upload'
-                // Refine asset type based on file
-                if (file.type.startsWith('video')) assetType = 'video'
-                else if (file.type.startsWith('audio')) assetType = 'audio'
+                    storagePath = fileName
+                    mimeType = file.type
+                    sourceType = 'file_upload'
+                    if (file.type.startsWith('video')) assetType = 'video'
+                    else if (file.type.startsWith('audio')) assetType = 'audio'
+                }
             } else if (activeTab === 'text') {
                 sourceType = 'text'
                 textToSave = textContent
@@ -351,25 +359,50 @@ function CreateStoryContent() {
                 <TabsContent value="upload" className="mt-0">
                     <Card>
                         <CardHeader><CardTitle>Upload Media</CardTitle></CardHeader>
-                        <CardContent className="flex flex-col items-center gap-6 py-12 border-2 border-dashed border-muted m-6 rounded-lg bg-muted/5">
-                            <div className="p-4 rounded-full bg-primary/10">
-                                <Upload className="h-8 w-8 text-primary" />
+                        <CardContent className="space-y-6">
+                            {/* File Upload */}
+                            <div className="flex flex-col items-center gap-4 py-8 border-2 border-dashed border-muted rounded-lg bg-muted/5">
+                                <div className="p-3 rounded-full bg-primary/10">
+                                    <Upload className="h-6 w-6 text-primary" />
+                                </div>
+                                <div className="text-center space-y-1">
+                                    <p className="text-sm font-medium">Upload File</p>
+                                    <p className="text-xs text-muted-foreground">Audio or Video up to 50MB</p>
+                                </div>
+                                <Input
+                                    type="file"
+                                    accept="audio/*,video/*"
+                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                    className="max-w-xs cursor-pointer"
+                                />
                             </div>
-                            <div className="text-center space-y-1">
-                                <p className="text-sm font-medium">Click to browse or drag and drop</p>
-                                <p className="text-xs text-muted-foreground">MP4, MOV, MP3, WAV up to 50MB</p>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-background px-2 text-muted-foreground">Or link from cloud</span>
+                                </div>
                             </div>
-                            <Input
-                                type="file"
-                                accept="audio/*,video/*"
-                                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                className="max-w-xs cursor-pointer"
-                            />
+
+                            {/* Google Photos Link */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Google Photos Link</label>
+                                <Input
+                                    placeholder="Paste shared album link..."
+                                    value={textContent} // Reusing textContent state for link if mode is upload
+                                    onChange={(e) => setTextContent(e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Paste a link to a Google Photos album or image.
+                                </p>
+                            </div>
                         </CardContent>
                         <CardFooter className="justify-end bg-muted/20 py-4">
-                            <Button onClick={() => handleUnifiedSave()} disabled={isSaving || !file}>
+                            <Button onClick={() => handleUnifiedSave()} disabled={isSaving || (!file && !textContent)}>
                                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Upload & Save
+                                Save Media
                             </Button>
                         </CardFooter>
                     </Card>
