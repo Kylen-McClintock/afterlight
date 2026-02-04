@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Mic, PenTool, Upload, Video } from "lucide-react"
+import { ArrowRight, Mic, PenTool, Upload, Video, Sparkles, Users, Quote } from "lucide-react"
 import Link from "next/link"
 import { WeeklyPlanWidget } from "@/components/dashboard/WeeklyPlanWidget"
-import { MeditationFetcher } from "@/components/dashboard/MeditationFetcher"
+import { ConnectionsWidget } from "@/components/dashboard/ConnectionsWidget"
+import { InspirationWidget } from "@/components/dashboard/InspirationWidget"
 
 export default function DashboardPage() {
     return (
@@ -21,24 +22,53 @@ export default function DashboardPage() {
                     <WeeklyPlanWidget />
                 </div>
 
-                {/* Right Col: Meditations & Recommendations */}
+                {/* Right Col: Mindfulness */}
                 <div className="lg:col-span-2 space-y-6">
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-heading font-semibold">Science-Backed Meditations</h2>
-                            <Link href="/app/meditations" className="text-sm text-muted-foreground hover:underline">View All</Link>
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <MeditationFetcher />
-                        </div>
-                    </section>
+                    {/* Daily Wisdom Row */}
+                    <div className="h-48">
+                        <InspirationWidget />
+                    </div>
+
+                    {/* Connections & Library Links Row */}
+                    <div className="grid md:grid-cols-2 gap-4 h-56">
+                        <ConnectionsWidget />
+                        <Card className="flex flex-col h-full justify-center p-6 bg-gradient-to-br from-background to-muted/20">
+                            <h3 className="font-heading font-semibold text-lg mb-4">Mindfulness Library</h3>
+                            <div className="space-y-3">
+                                <Link href="/app/meditations?type=quote">
+                                    <div className="flex items-center justify-between group p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <Quote className="h-4 w-4 text-primary" />
+                                            <span className="text-sm font-medium">Daily Quotes</span>
+                                        </div>
+                                        <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </Link>
+                                <Link href="/app/meditations">
+                                    <div className="flex items-center justify-between group p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <Sparkles className="h-4 w-4 text-primary" />
+                                            <span className="text-sm font-medium">Browse All Meditations</span>
+                                        </div>
+                                        <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </Link>
+                            </div>
+                        </Card>
+                    </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
             <section>
-                <h2 className="text-xl font-heading font-semibold mb-4">Create a Story</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <h2 className="text-xl font-heading font-semibold mb-4">Actions</h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <Link href="/app/prompts">
+                        <Button variant="outline" className="h-24 w-full flex flex-col gap-2 hover:bg-primary/5 hover:border-primary border-dashed">
+                            <Sparkles className="h-6 w-6 text-primary" />
+                            <span>Explore Prompts</span>
+                        </Button>
+                    </Link>
                     <Link href="/app/story/create?mode=audio">
                         <Button variant="outline" className="h-24 w-full flex flex-col gap-2 hover:bg-primary/5 hover:border-primary">
                             <Mic className="h-6 w-6 text-primary" />
