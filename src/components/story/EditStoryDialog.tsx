@@ -45,14 +45,21 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [location, setLocation] = useState(story.location || "")
     const [dateGranularity, setDateGranularity] = useState<string>(story.date_granularity || "exact")
     const [storyDate, setStoryDate] = useState<string>(
-        story.story_date ? story.story_date.split('T')[0] : ""
+        story.story_date ? (() => {
+            // Parse manually to avoid timezone shift when creating initial state
+            // story.story_date is YYYY-MM-DD or ISO
+            const dateStr = story.story_date.split('T')[0]
+            // If we just use dateStr, the input type="date" handles it correctly as value="YYYY-MM-DD"
+            // The issue was likely how we derived it or how new Date() shifted it previously.
+            return dateStr
+        })() : ""
     )
     // Using string for date input (YYYY-MM-DD)
 
     // For fuzzy dates (Year/Season), we might want separate inputs, 
     // but for MVP let's store standard date and use granularity to decide display.
     // If granularity is 'year', we default to Jan 1st of that year in DB but display only year.
-    const [yearInput, setYearInput] = useState<string>(story.story_date ? new Date(story.story_date).getFullYear().toString() : new Date().getFullYear().toString())
+    const [yearInput, setYearInput] = useState<string>(story.story_date ? parseInt(story.story_date.split('-')[0]).toString() : new Date().getFullYear().toString())
     const [seasonInput, setSeasonInput] = useState<string>("Summer")
 
     // Relationship State
@@ -112,8 +119,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
         let finalDate = storyDate
         if (dateGranularity === 'year') {
-            // For year only, set to Jan 1st
-            finalDate = `${yearInput}-01-01`
+            // For year only, set to Jan 2nd to avoid timezone shifts back to previous year
+            finalDate = `${yearInput}-01-02`
         }
         // If exact and empty, maybe set null? Or is it required? 
         // If empty, let's keep it null if allowed.
