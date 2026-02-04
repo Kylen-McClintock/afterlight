@@ -19,7 +19,8 @@ export default async function TimelinePage(props: { searchParams: Promise<{ sear
           *,
           story_assets (*),
           storyteller:storyteller_user_id (display_name),
-          recipients:story_recipients (recipient_email)
+          recipients:story_recipients (recipient_email),
+          prompt_request:prompt_request_id (prompt_text)
         `)
         .order('story_date', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })

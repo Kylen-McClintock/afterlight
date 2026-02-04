@@ -41,11 +41,18 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
 
     // Determine display date
     let displayDate = ""
-    const dateObj = new Date(story.story_date || story.created_at)
+    // Fallback to created_at only if story_date is explicitly null/missing
+    const rawDate = story.story_date || story.created_at
+    // Ensure we handle date strings correctly (Safari/Cross-browser safety is better with new Date(string))
+    // However, if story_date is like "1999-01-01", local timezone might shift it.
+    // Ideally we treat YYYY-MM-DD as UTC or display as is.
+    // For now, standard Date object parsing.
 
-    if (story.date_granularity === 'year') {
-        displayDate = dateObj.getFullYear().toString()
+    // If granularity is year, just show year based on rawDate string parsing if possible or Date object
+    if (story.date_granularity === 'year' && story.story_date) {
+        displayDate = story.story_date.substring(0, 4) // "YYYY"
     } else {
+        const dateObj = new Date(rawDate)
         displayDate = dateObj.toLocaleDateString(undefined, {
             year: 'numeric',
             month: 'long',

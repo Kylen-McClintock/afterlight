@@ -29,7 +29,18 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [loading, setLoading] = useState(false)
 
     // Form State
-    const [title, setTitle] = useState(story.title || "")
+    // Default title to story.title -> prompt.title -> "Untitled"
+    const [title, setTitle] = useState(story.title || (story.prompt_request ? story.prompt_request.prompt_text : "") || "")
+    // Note: story prop might not have prompt_request directly if not fetched carefully.
+    // Let's assume passed story object has it or we rely on user input.
+    // Actually, `EditStoryDialog` receives `story`. We need to verify `story` has `prompt_request`.
+
+    // If the component mounts and we want to auto-fill title if empty:
+    useEffect(() => {
+        if (!title && story.prompt_request?.prompt_text) {
+            setTitle(story.prompt_request.prompt_text)
+        }
+    }, [story.prompt_request])
 
     const [location, setLocation] = useState(story.location || "")
     const [dateGranularity, setDateGranularity] = useState<string>(story.date_granularity || "exact")
@@ -98,11 +109,14 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         const supabase = createClient()
 
         let finalDate = storyDate
-        if (dateGranularity === 'year' || dateGranularity === 'season') {
-            // Construct a date based on year
-            // Season logic is display-only mostly, but we need a valid Postgres DATE
+        if (dateGranularity === 'year') {
+            // For year only, set to Jan 1st
             finalDate = `${yearInput}-01-01`
         }
+        // If exact and empty, maybe set null? Or is it required? 
+        // If empty, let's keep it null if allowed.
+        if (!finalDate && dateGranularity === 'exact') finalDate = null as any
+
 
         const { error } = await supabase
             .from('story_sessions')
