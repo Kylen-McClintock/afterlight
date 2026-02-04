@@ -55,6 +55,11 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
     }, {} as Record<string, any[]>)
 
 
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+    const chunksRef = useRef<Blob[]>([])
+    const timerRef = useRef<NodeJS.Timeout | null>(null)
+    const videoPreviewRef = useRef<HTMLVideoElement | null>(null)
+    const streamRef = useRef<MediaStream | null>(null)
     const analyzerRef = useRef<AnalyserNode | null>(null)
     const audioContextRef = useRef<AudioContext | null>(null)
     const [volumeLevel, setVolumeLevel] = useState(0)
