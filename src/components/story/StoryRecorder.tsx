@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mic, Square, Play, RotateCcw, Save, Video, Loader2 } from "lucide-react"
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { createClient } from "@/utils/supabase/client"
+
 interface StoryRecorderProps {
     mode: "audio" | "video"
-    onSave: (blob: Blob) => Promise<void>
+    onSave: (blob: Blob, relationship_label?: string) => Promise<void>
 }
 
 export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
@@ -17,6 +21,40 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
     const [duration, setDuration] = useState(0)
     const [isSaving, setIsSaving] = useState(false)
     const [permissionError, setPermissionError] = useState<string | null>(null)
+
+    // Relationship State
+    const [relationships, setRelationships] = useState<any[]>([])
+    const [relationshipLabel, setRelationshipLabel] = useState<string>("")
+    const [showRelationshipSelector, setShowRelationshipSelector] = useState(false)
+
+    useEffect(() => {
+        const fetchRelationships = async () => {
+            const supabase = createClient()
+            const { data } = await supabase.from('relationships').select('*').order('category')
+            if (data) setRelationships(data)
+
+            // Allow checking if this is a guest
+            // Ideally we pass a 'isGuest' prop, but for now we can infer or fetch user state
+            // Let's assume onSave might need it.
+            // Actually, we can just always show it or show it if we detect no user?
+            // The prompt "How do you know [User]?" implies this is for guests.
+            // The recorder is used by everyone though.
+            // Let's check auth state.
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                setShowRelationshipSelector(true)
+            }
+        }
+        fetchRelationships()
+    }, [])
+
+    // Group relationships by category
+    const groupedRelationships = relationships.reduce((acc, rel) => {
+        if (!acc[rel.category]) acc[rel.category] = []
+        acc[rel.category].push(rel)
+        return acc
+    }, {} as Record<string, any[]>)
+
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const chunksRef = useRef<Blob[]>([])
@@ -100,7 +138,7 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
         if (!mediaBlob) return
         setIsSaving(true)
         try {
-            await onSave(mediaBlob)
+            await onSave(mediaBlob, relationshipLabel)
         } finally {
             setIsSaving(false)
         }
@@ -165,6 +203,35 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 )}
 
             </CardContent>
+
+            {showRelationshipSelector && mediaBlob && !isSaving && (
+                <div className="px-6 pb-4 space-y-2 animate-in fade-in">
+                    <Label className="text-center block text-muted-foreground">How do you know them?</Label>
+                    <Select value={relationshipLabel} onValueChange={setRelationshipLabel}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select your relationship..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {Object.entries(groupedRelationships).map(([category, rels]) => (
+                                <div key={category}>
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/20">
+                                        {category}
+                                    </div>
+                                    {/* @ts-ignore */}
+                                    {rels.map((rel: any) => (
+                                        <SelectItem key={rel.id} value={rel.label}>
+                                            {rel.label}
+                                        </SelectItem>
+                                    ))}
+                                </div>
+                            ))}
+                            {/* Fallback generic options just in case */}
+                            <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+
             <CardFooter className="flex justify-center gap-4">
                 {!isRecording && !mediaBlob && (
                     <Button size="lg" className="rounded-full h-16 w-16 p-0 bg-red-500 hover:bg-red-600" onClick={startRecording}>

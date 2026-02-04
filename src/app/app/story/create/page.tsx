@@ -224,8 +224,8 @@ function CreateStoryContent() {
                     </div>
                 ) : (
                     <div>
-                        <h1 className="text-2xl font-bold font-heading">Free Form Story</h1>
-                        <p className="text-muted-foreground">Share a memory, a thought, or a message for the future.</p>
+                        <h1 className="text-2xl font-bold font-heading">Meaningful Moment</h1>
+                        <p className="text-muted-foreground">Reflect on a meaningful moment you’ve shared with them, or simply describe what they mean to you.</p>
                     </div>
                 )}
             </div>
