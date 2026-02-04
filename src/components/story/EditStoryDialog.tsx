@@ -127,25 +127,29 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         if (!finalDate && dateGranularity === 'exact') finalDate = null as any
 
 
+        // Ensure finalDate is either a valid string or null
+        // Postgres accepts null for Date column.
+
+        console.log("Saving Story:", { title, finalDate, dateGranularity, id: story.id })
+
         const { error } = await supabase
             .from('story_sessions')
             .update({
                 title: title,
-                story_date: finalDate,
+                story_date: finalDate || null,
                 date_granularity: dateGranularity,
-
                 location: location,
                 relationship_label: relationshipLabel === "None" ? null : relationshipLabel
             })
             .eq('id', story.id)
 
         if (error) {
-            console.error(error)
-            alert("Failed to update story")
+            console.error("Supabase Save Error:", error)
+            alert(`Failed to update story. DB Error: ${JSON.stringify(error, null, 2)}`)
         } else {
+            console.log("Save successful")
             setOpen(false)
             onSuccess()
-            // window.location.reload() // Or rely on onSuccess callback to refresh
         }
         setLoading(false)
     }
@@ -166,13 +170,14 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             .upload(filePath, file)
 
         if (uploadError) {
-            console.error(uploadError)
-            alert("Error uploading photo")
+            console.error("Storage Error:", uploadError)
+            alert(`Error uploading photo to storage: ${JSON.stringify(uploadError, null, 2)}`)
             setUploading(false)
             return
         }
 
         // 2. Create Asset Record
+        console.log("Inserting Asset Record for:", filePath)
         const { data: assetData, error: dbError } = await supabase
             .from('story_assets')
             .insert({
@@ -186,8 +191,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             .single()
 
         if (dbError) {
-            console.error(dbError)
-            alert("Error saving photo record")
+            console.error("Asset DB Error:", dbError)
+            alert(`Error creating database record for photo: ${JSON.stringify(dbError, null, 2)}`)
         } else {
             setPhotos([...photos, assetData])
         }
