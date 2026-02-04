@@ -120,7 +120,8 @@ function CreateStoryContent() {
                 title: title,
                 storyteller_user_id: user.id,
                 global_prompt_id: safePromptId,
-                visibility: 'shared_with_circle'
+                visibility: 'shared_with_circle',
+                categories: selectedPrompt?.tags || []
             }
 
             const { data: session, error: sessionError } = await supabase

@@ -1,3 +1,8 @@
+-- Drop conflicting tables from previous schema version
+DROP TABLE IF EXISTS public.weekly_plans CASCADE;
+DROP TABLE IF EXISTS public.weekly_plan_items CASCADE;
+DROP TABLE IF EXISTS public.library_meditations CASCADE;
+
 -- Create library_meditations table
 CREATE TABLE IF NOT EXISTS public.library_meditations (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

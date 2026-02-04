@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/client"
-import { Loader2, Upload, Image as ImageIcon, X } from "lucide-react"
+import { Loader2, Upload, Image as ImageIcon, X, FileText } from "lucide-react"
 
 interface EditStoryDialogProps {
     story: any
@@ -230,13 +230,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                         <div className="grid grid-cols-3 gap-2">
                             {photos.map((photo: any) => (
                                 <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden bg-muted border">
-                                    {/* We need public/signed URL here. For now assuming public or generic placeholder if private not loaded yet */}
-                                    {/* In a real app we'd load signed URLs for these previews too since bucket is private. */}
-                                    <div className="flex items-center justify-center h-full bg-secondary/30 text-xs text-muted-foreground">
-                                        Photo
-                                    </div>
-                                    {/* Displaying actual image requires async signing logic similar to MediaPlayer or StoryCard logic. 
-                                         For Edit Preview, we skip it to save time or just show filename/icon. */}
+                                    <img
+                                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${photo.storage_path}`}
+                                        alt="Story attachment"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                             ))}
 
@@ -261,7 +259,32 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                     </div>
                 </div>
 
-                <DialogFooter>
+                {/* Add Note Section */}
+                <div className="pt-4 border-t">
+                    <Label className="mb-2 block">Add a Note / Text</Label>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={async () => {
+                            const note = prompt("Enter your note:")
+                            if (!note) return
+
+                            const supabase = createClient()
+                            await supabase.from('story_assets').insert({
+                                story_session_id: story.id,
+                                asset_type: 'text',
+                                source_type: 'text',
+                                text_content: note
+                            })
+                            // Simple refresh for now
+                            onSuccess()
+                            setOpen(false)
+                        }}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Add Text Note
+                        </Button>
+                    </div>
+                </div>
+
+                <DialogFooter className="mt-6">
                     <Button onClick={handleSave} disabled={loading}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes
