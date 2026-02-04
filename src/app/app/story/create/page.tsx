@@ -11,6 +11,7 @@ import { ArrowLeft, Upload, Loader2, Save, Mic, Video, FileText } from "lucide-r
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PromptLibrary } from "@/components/prompts/PromptLibrary"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 function CreateStoryContent() {
     const searchParams = useSearchParams()
@@ -72,6 +73,7 @@ function CreateStoryContent() {
     // Recorder State
     const [title, setTitle] = useState("")
     const [storyDate, setStoryDate] = useState("")
+    const [dateGranularity, setDateGranularity] = useState("exact")
     const [location, setLocation] = useState("")
     const [textContent, setTextContent] = useState("")
     const [file, setFile] = useState<File | null>(null)
@@ -124,6 +126,7 @@ function CreateStoryContent() {
                 circle_id: circleId,
                 title: activeTitle,
                 story_date: storyDate || null, // Capture Date
+                date_granularity: dateGranularity, // Capture Granularity
                 location: location || null, // Capture Location
                 storyteller_user_id: user.id,
                 global_prompt_id: safePromptId,
@@ -255,13 +258,39 @@ function CreateStoryContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Date (Optional)</label>
-                        <Input
-                            type="date"
-                            className="bg-background"
-                            onChange={(e) => setStoryDate(e.target.value)}
-                        />
-                        <p className="text-[10px] text-muted-foreground">When did this happen?</p>
+                        <label className="text-sm font-medium">When did this happen?</label>
+                        <div className="flex flex-col gap-2">
+                            <Select value={dateGranularity} onValueChange={setDateGranularity}>
+                                <SelectTrigger className="w-full bg-background h-8 text-xs">
+                                    <SelectValue placeholder="Precision" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="exact">Exact Date</SelectItem>
+                                    <SelectItem value="year">Year Only</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {dateGranularity === 'exact' ? (
+                                <Input
+                                    type="date"
+                                    className="bg-background"
+                                    onChange={(e) => setStoryDate(e.target.value)}
+                                />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">Year:</span>
+                                    <Input
+                                        type="number"
+                                        placeholder="YYYY"
+                                        className="bg-background"
+                                        onChange={(e) => {
+                                            // Store as YYYY-01-01 for DB but mark granularity as year
+                                            setStoryDate(`${e.target.value}-01-01`)
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Location (Optional)</label>

@@ -136,6 +136,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         } else {
             setOpen(false)
             onSuccess()
+            // window.location.reload() // Or rely on onSuccess callback to refresh
         }
         setLoading(false)
     }

@@ -1,10 +1,15 @@
+"use client"
+
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, FileText, Image as ImageIcon, Video, ExternalLink, MapPin } from "lucide-react"
+import { Play, FileText, Image as ImageIcon, Video, ExternalLink, MapPin, Edit, Calendar } from "lucide-react"
 import Link from "next/link"
 import { MediaPlayer } from "./MediaPlayer"
 import { StoryImage } from "./StoryImage"
+import { EditStoryDialog } from "@/components/story/EditStoryDialog"
+import { useRouter } from "next/navigation"
 
 interface StoryAsset {
     id: string
@@ -29,6 +34,9 @@ interface StorySession {
     story_assets: StoryAsset[]
     storyteller?: { display_name: string } | null
     storyteller_user_id?: string | null
+    prompt_request?: { prompt_text: string } | null
+    recipients?: any[]
+    circle_id?: string
 }
 
 interface StoryCardProps {
@@ -37,8 +45,10 @@ interface StoryCardProps {
 }
 
 export function StoryCard({ story, currentUserId }: StoryCardProps) {
+    const router = useRouter()
     const mainAsset = story.story_assets?.[0]
     const isGuest = currentUserId && story.storyteller_user_id && story.storyteller_user_id !== currentUserId
+    const isOwner = currentUserId && story.storyteller_user_id === currentUserId
 
     // Determine display date
     let displayDate = ""
@@ -103,38 +113,36 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     }
 
     return (
-        <Card className={`hover:shadow-md transition-shadow ${isGuest ? 'bg-indigo-50/50 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900' : ''}`}>
+        <Card className={`hover:shadow-md transition-shadow relative overflow-hidden ${isGuest ? 'bg-indigo-50/50 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900' : ''}`}>
+            {/* Date Banner - More Prominent */}
+            {displayDate && (
+                <div className="absolute top-0 left-0 bg-primary/10 px-3 py-1 rounded-br-lg text-xs font-bold text-primary flex items-center gap-1 z-10 border-b border-r border-primary/20">
+                    <Calendar className="h-3 w-3" />
+                    {displayDate}
+                </div>
+            )}
+
             {isGuest && (
-                <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-bl-md rounded-tr-md font-medium">
+                <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-bl-md font-medium z-10">
                     Guest Story
                 </div>
             )}
-            <CardHeader>
+
+            <CardHeader className="pt-10"> {/* Added top padding for the date banner */}
                 <div className="flex justify-between items-start">
-                    <div className="space-y-1">
+                    <div className="space-y-1 w-full">
                         <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>{displayDate}</span>
                                 {story.relationship_label && (
-                                    <>
-                                        <span>•</span>
-                                        <Badge variant="outline" className="text-[10px] h-5 px-1.5">{story.relationship_label}</Badge>
-                                    </>
+                                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{story.relationship_label}</Badge>
                                 )}
                                 {story.location && (
-                                    <>
-                                        <span>•</span>
-                                        <span className="flex items-center gap-0.5">
-                                            <MapPin className="h-3 w-3" />
-                                            {story.location}
-                                        </span>
-                                    </>
+                                    <span className="flex items-center gap-0.5">
+                                        <MapPin className="h-3 w-3" />
+                                        {story.location}
+                                    </span>
                                 )}
                             </div>
-                            {/* Creation Date (Small) */}
-                            <span className="text-[10px] text-muted-foreground/60">
-                                Added {new Date(story.created_at).toLocaleDateString()}
-                            </span>
                         </div>
 
                         <div className="pt-1">
@@ -143,16 +151,35 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                             ))}
                         </div>
 
-                        <CardTitle className="text-xl leading-tight mt-1">
-                            {story.title || "Untitled Story"}
-                        </CardTitle>
+                        <div className="flex justify-between items-start gap-2">
+                            <CardTitle className="text-xl leading-tight mt-1 flex-1">
+                                {story.title || "Untitled Story"}
+                            </CardTitle>
+                            {/* Edit Button for Owner */}
+                            {isOwner && (
+                                <EditStoryDialog
+                                    story={story}
+                                    onSuccess={() => router.refresh()}
+                                    trigger={
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 text-muted-foreground hover:text-foreground">
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    }
+                                />
+                            )}
+                        </div>
+
                         {story.storyteller && (
                             <p className="text-sm font-medium text-muted-foreground">
                                 Told by {story.storyteller.display_name}
                             </p>
                         )}
+
+                        {/* Creation Date (Small) - Moved to bottom of header */}
+                        <span className="text-[10px] text-muted-foreground/60 block pt-1">
+                            Added {new Date(story.created_at).toLocaleDateString()}
+                        </span>
                     </div>
-                    {/* Menu or Edit button could go here */}
                 </div>
             </CardHeader>
             <CardContent>
