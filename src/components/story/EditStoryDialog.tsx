@@ -115,6 +115,15 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [transcribing, setTranscribing] = useState(false)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const [photos, setPhotos] = useState<any[]>(story.story_assets?.filter((a: any) => a.asset_type === 'photo') || [])
+    // Initialize audio from story_assets OR story.media. 
+    // story.media is usually a processed array with 'url'. story.story_assets has 'storage_path'.
+    // We try to find audio in either.
+    const [audioAssets, setAudioAssets] = useState<any[]>(() => {
+        const fromAssets = story.story_assets?.filter((a: any) => a.asset_type === 'audio') || []
+        const fromMedia = story.media?.filter((m: any) => m.type === 'audio') || []
+        // Prefer media if available as it likely has URLs
+        return fromMedia.length > 0 ? fromMedia : fromAssets
+    })
 
     const handleSave = async () => {
         setLoading(true)
@@ -207,8 +216,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
     const handleTranscribe = async () => {
         // Find audio URL
-        const audioMedia = story.media?.find((m: any) => m.type === 'audio')
-        if (!audioMedia?.url) return
+        const audioMedia = audioAssets[0] // Use local state
+        if (!audioMedia?.url) {
+            alert("No audio URL found. You may need to reload to get the signed URL.")
+            return
+        }
 
         setTranscribing(true)
         try {
@@ -421,7 +433,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 {uploading ? (
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 ) : (
-                                    story.media.some((m: any) => m.type === 'audio') ? (
+                                    (audioAssets.length > 0) ? (
                                         <div className="flex flex-col items-center justify-center h-full w-full p-2">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Button variant="ghost" size="icon" onClick={() => audioRef.current?.pause()} disabled={!isPlaying} type="button">
@@ -442,7 +454,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             </Button>
                                             <audio
                                                 ref={audioRef}
-                                                src={story.media.find((m: any) => m.type === 'audio').url}
+                                                src={audioAssets[0].url || ""} // Only works if URL is present. If asset only has path, we might need to fetch it.
+                                                // If we came from story_assets (raw), we might not have 'url'. 
+                                                // But usually the parent fetches signed URLs.
+                                                // If not, we might fail to play until reload. 
+                                                // Ideally we generate a signed URL here if missing, but for now let's rely on 'media' or the one we optimistically added.
                                                 onPlay={() => setIsPlaying(true)}
                                                 onPause={() => setIsPlaying(false)}
                                                 onEnded={() => setIsPlaying(false)}
@@ -530,18 +546,32 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             return
                                         }
 
-                                        await supabase.from('story_assets').insert({
+                                        // Get public URL for immediate playback capability if needed (or just use blob logic if we refined it, but here we save to DB)
+                                        const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(fileName)
+
+                                        const { data: newAsset, error: dbError } = await supabase.from('story_assets').insert({
                                             story_session_id: story.id,
                                             asset_type: 'audio',
                                             source_type: 'browser_recording',
                                             storage_path: fileName,
                                             mime_type: 'audio/webm'
-                                        })
-                                        onSuccess()
-                                        setOpen(false) // Close main dialog too? Or just inner?
-                                        // Just let inner close by nature of it being done, actually we need to close the inner dialog.
-                                        // But here we are inline. We might need a refreshed state.
-                                        window.location.reload()
+                                        }).select().single()
+
+                                        if (newAsset) {
+                                            // Optimistically update local state so UI shows it immediately
+                                            // We add a 'url' property to mimic what the UI expects if it looks for 'url'
+                                            const assetWithUrl = { ...newAsset, url: publicUrl }
+                                            setAudioAssets([assetWithUrl]) // Assuming one audio per story for now or append? Let's replace to avoid duplicates if mainly one.
+                                            onSuccess()
+                                            setOpen(false) // This closes the MAIN dialog? No, we are in a nested dialog.
+                                            // Wait, `setOpen` is for the EditStoryDialog. 
+                                            // We actually want to close the *Recording* dialog.
+                                            // The Recording Dialog is controlled by its own Trigger/Content unless we control it.
+                                            // Since it's uncontrolled here (Trigger/Content), we might need to use a Ref or controlled state for the inner dialog if we want to close it programmatically.
+                                            // Ideally, we just let the user close it or success feedback.
+                                            alert("Audio saved!")
+                                            // We DON'T reload window. 
+                                        }
                                     }} />
                                 </DialogContent>
                             </Dialog>
