@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/client"
-import { Loader2, Upload, Image as ImageIcon, X, FileText } from "lucide-react"
+import { Loader2, Upload, Image as ImageIcon, X, FileText, Mic } from "lucide-react"
+import { StoryRecorder } from "./StoryRecorder"
 
 interface EditStoryDialogProps {
     story: any
@@ -260,27 +261,83 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 </div>
 
                 {/* Add Note Section */}
-                <div className="pt-4 border-t">
-                    <Label className="mb-2 block">Add a Note / Text</Label>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={async () => {
-                            const note = prompt("Enter your note:")
-                            if (!note) return
+                <div className="pt-4 border-t space-y-4">
+                    <div className="flex flex-col gap-2">
+                        <Label className="block">Add Content</Label>
+                        <div className="flex flex-wrap gap-2">
+                            {/* Add Note */}
+                            <Button variant="outline" size="sm" onClick={async () => {
+                                const note = prompt("Enter your note:")
+                                if (!note) return
 
-                            const supabase = createClient()
-                            await supabase.from('story_assets').insert({
-                                story_session_id: story.id,
-                                asset_type: 'text',
-                                source_type: 'text',
-                                text_content: note
-                            })
-                            // Simple refresh for now
-                            onSuccess()
-                            setOpen(false)
-                        }}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Add Text Note
-                        </Button>
+                                const supabase = createClient()
+                                await supabase.from('story_assets').insert({
+                                    story_session_id: story.id,
+                                    asset_type: 'text',
+                                    source_type: 'text',
+                                    text_content: note
+                                })
+                                onSuccess()
+                                setOpen(false)
+                            }}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Text Note
+                            </Button>
+
+                            {/* Add Collection */}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <PlusIcon className="mr-2 h-4 w-4" />
+                                        Add to Collection
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader><DialogTitle>Add to Collection</DialogTitle></DialogHeader>
+                                    <div className="py-4">
+                                        <CollectionSelector storyId={story.id} />
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* Add Recording */}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <Mic className="mr-2 h-4 w-4" />
+                                        Record Audio
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader><DialogTitle>Record Audio</DialogTitle></DialogHeader>
+                                    <StoryRecorder mode="audio" onSave={async (blob: Blob) => {
+                                        const supabase = createClient()
+                                        const fileName = `${story.id}/${Date.now()}.webm`
+                                        const { error: uploadError } = await supabase.storage
+                                            .from('stories')
+                                            .upload(fileName, blob)
+
+                                        if (uploadError) {
+                                            alert("Error uploading")
+                                            return
+                                        }
+
+                                        await supabase.from('story_assets').insert({
+                                            story_session_id: story.id,
+                                            asset_type: 'audio',
+                                            source_type: 'browser_recording',
+                                            storage_path: fileName,
+                                            mime_type: 'audio/webm'
+                                        })
+                                        onSuccess()
+                                        setOpen(false) // Close main dialog too? Or just inner?
+                                        // Just let inner close by nature of it being done, actually we need to close the inner dialog.
+                                        // But here we are inline. We might need a refreshed state.
+                                        window.location.reload()
+                                    }} />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
                 </div>
 
@@ -292,6 +349,55 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    )
+}
+
+// Helper Component for Collections
+function CollectionSelector({ storyId }: { storyId: string }) {
+    const [collections, setCollections] = useState<any[]>([])
+    const [selected, setSelected] = useState("")
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        const fetch = async () => {
+            const supabase = createClient()
+            const { data } = await supabase.from('prompt_collections').select('*')
+            if (data) setCollections(data)
+        }
+        fetch()
+    }, [])
+
+    const handleAdd = async () => {
+        if (!selected) return
+        setLoading(true)
+        const supabase = createClient()
+        const { error } = await supabase
+            .from('custom_collection_items')
+            .insert({
+                collection_id: selected,
+                story_id: storyId
+            })
+
+        if (error) alert("Error adding to collection")
+        else {
+            alert("Added!")
+            window.location.reload()
+        }
+        setLoading(false)
+    }
+
+    return (
+        <div className="flex gap-2">
+            <Select value={selected} onValueChange={setSelected}>
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Collection" />
+                </SelectTrigger>
+                <SelectContent>
+                    {collections.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Button onClick={handleAdd} disabled={loading || !selected}>Add</Button>
+        </div>
     )
 }
 

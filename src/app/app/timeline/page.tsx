@@ -4,18 +4,51 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
-export default async function TimelinePage() {
+export default async function TimelinePage(props: { searchParams: Promise<{ search?: string, collection?: string }> }) {
     const supabase = await createClient()
 
     // Fetch stories with assets
-    const { data: stories, error } = await supabase
+    // Fetch stories filter by search (tag) or collection
+    const searchParams = await props.searchParams
+    const search = searchParams?.search
+    const collectionId = searchParams?.collection
+
+    let query = supabase
         .from('story_sessions')
         .select(`
-      *,
-      story_assets (*),
-      storyteller:storyteller_user_id (display_name)
-    `)
+          *,
+          story_assets (*),
+          storyteller:storyteller_user_id (display_name),
+          recipients:story_recipients (recipient_email)
+        `)
         .order('created_at', { ascending: false })
+
+    if (search) {
+        query = query.contains('categories', [search])
+    }
+
+    // Note: Filtering by collection requires a join or two-step fetch since it's a many-to-many relationship
+    // For MVP performance, if collectionId is present, let's fetch item IDs first.
+    let storyIds: string[] = []
+    if (collectionId) {
+        const { data: items } = await supabase
+            .from('custom_collection_items')
+            .select('story_id')
+            .eq('collection_id', collectionId)
+
+        if (items) {
+            storyIds = items.map(i => i.story_id).filter(Boolean) as string[]
+            if (storyIds.length > 0) {
+                query = query.in('id', storyIds)
+            } else {
+                // Empty collection or no stories in it
+                // We should force return empty.
+                query = query.in('id', ['00000000-0000-0000-0000-000000000000'])
+            }
+        }
+    }
+
+    const { data: stories, error } = await query
 
     if (error) {
         console.error("Error fetching timeline:", error)

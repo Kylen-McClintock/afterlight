@@ -21,6 +21,7 @@ interface StorySession {
     prompt_request_id?: string | null
     created_at: string
     relationship_label?: string | null
+    categories?: string[] | null
     story_assets: StoryAsset[]
     storyteller?: { display_name: string } | null
     storyteller_user_id?: string | null
@@ -89,6 +90,9 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                                     <Badge variant="outline" className="text-[10px] h-5 px-1.5">{story.relationship_label}</Badge>
                                 </>
                             )}
+                            {story.categories && story.categories.map((cat: string) => (
+                                <Badge key={cat} variant="secondary" className="text-[10px] h-5 px-1.5 ml-1">{cat}</Badge>
+                            ))}
                         </div>
                         <CardTitle className="text-xl leading-tight">
                             {story.title || "Untitled Story"}
@@ -113,6 +117,6 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                     </Button>
                 </Link>
             </CardFooter>
-        </Card>
+        </Card >
     )
 }

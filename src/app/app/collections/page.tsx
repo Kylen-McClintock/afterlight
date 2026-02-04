@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/utils/supabase/client"
 import { Folder, Heart, Loader2, Tag } from "lucide-react"
+import { Link as UnusedLink } from "lucide-react" // Avoiding collision if any
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 export default function CollectionsPage() {
     const [loading, setLoading] = useState(true)
@@ -110,13 +113,23 @@ export default function CollectionsPage() {
                     ))}
 
                     {/* Create New Placeholder */}
-                    <Card className="border-dashed border-2 bg-muted/5 flex flex-col items-center justify-center p-6 text-center hover:bg-muted/10 transition-colors cursor-pointer">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                            <Folder className="h-5 w-5 text-primary" />
-                        </div>
-                        <h3 className="font-semibold">New Collection</h3>
-                        <p className="text-xs text-muted-foreground">Group stories manually</p>
-                    </Card>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Card className="border-dashed border-2 bg-muted/5 flex flex-col items-center justify-center p-6 text-center hover:bg-muted/10 transition-colors cursor-pointer">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                                    <Folder className="h-5 w-5 text-primary" />
+                                </div>
+                                <h3 className="font-semibold">New Collection</h3>
+                                <p className="text-xs text-muted-foreground">Group stories manually</p>
+                            </Card>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Create New Collection</DialogTitle>
+                            </DialogHeader>
+                            <CreateCollectionForm onSuccess={() => window.location.reload()} />
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </section>
 
@@ -147,6 +160,36 @@ export default function CollectionsPage() {
                     )}
                 </div>
             </section>
+        </div>
+    )
+}
+
+function CreateCollectionForm({ onSuccess }: { onSuccess: () => void }) {
+    const [name, setName] = useState("")
+    const [loading, setLoading] = useState(false)
+
+    const handleSubmit = async () => {
+        if (!name) return
+        setLoading(true)
+        const supabase = createClient()
+        const { error } = await supabase.from('prompt_collections').insert({
+            name: name,
+            type: 'user_defined'
+        })
+        if (error) alert("Error creating collection")
+        else onSuccess()
+        setLoading(false)
+    }
+
+    return (
+        <div className="space-y-4 py-4">
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Collection Name</label>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Vacation 2024" />
+            </div>
+            <Button onClick={handleSubmit} disabled={loading || !name} className="w-full">
+                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Create Collection"}
+            </Button>
         </div>
     )
 }
