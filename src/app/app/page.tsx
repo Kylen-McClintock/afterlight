@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Mic, PenTool, Upload, Video } from "lucide-react"
 import Link from "next/link"
+import { WeeklyPlanWidget } from "@/components/dashboard/WeeklyPlanWidget"
+import { MeditationFetcher } from "@/components/dashboard/MeditationFetcher"
 
 export default function DashboardPage() {
     return (
@@ -12,60 +14,26 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground">Here is your plan for the week.</p>
             </section>
 
-            {/* Weekly Plan Summary (Mock) */}
-            <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="bg-primary/5 border-primary/20">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Weekly Wins</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                            <li>Record 1 story</li>
-                            <li>Call Sarah</li>
-                            <li>Read 10 pages</li>
-                        </ul>
-                    </CardContent>
-                </Card>
+            {/* Weekly Plan & Quick Actions */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {/* Left Col: Weekly Plan */}
+                <div className="lg:col-span-1 h-full">
+                    <WeeklyPlanWidget />
+                </div>
 
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Connection</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">Prompt: "Tell me about your parents."</p>
-                        <Link href="/app/story/create?mode=text&promptId=daily-prompt">
-                            <Button size="sm" variant="outline" className="w-full">
-                                Answer Now
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Quote of the Week</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <figure className="text-sm italic">
-                            "Life is not measured by the number of breaths we take..."
-                        </figure>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Meditation</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm font-medium mb-2">Morning Presence</p>
-                        <Link href="/app/meaning">
-                            <Button size="sm" variant="secondary" className="w-full">
-                                Start (2m)
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            </section>
+                {/* Right Col: Meditations & Recommendations */}
+                <div className="lg:col-span-2 space-y-6">
+                    <section>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-heading font-semibold">Science-Backed Meditations</h2>
+                            <Link href="/app/meditations" className="text-sm text-muted-foreground hover:underline">View All</Link>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <MeditationFetcher />
+                        </div>
+                    </section>
+                </div>
+            </div>
 
             {/* Quick Actions */}
             <section>
