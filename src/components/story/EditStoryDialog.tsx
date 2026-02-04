@@ -126,6 +126,18 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         return fromMedia.length > 0 ? fromMedia : fromAssets
     })
 
+    // Sync state if story updates (e.g. parent router.refresh)
+    useEffect(() => {
+        const fromAssets = story.story_assets?.filter((a: any) => a.asset_type === 'audio') || []
+        const fromMedia = story.media?.filter((m: any) => m.type === 'audio') || []
+        const updated = fromMedia.length > 0 ? fromMedia : fromAssets
+
+        // Only update if length differs or URLs differ to avoid loops (simple check)
+        if (updated.length !== audioAssets.length) {
+            setAudioAssets(updated)
+        }
+    }, [story.story_assets, story.media])
+
     const handleSave = async () => {
         setLoading(true)
         const supabase = createClient()
@@ -556,6 +568,12 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             storage_path: fileName,
                                             mime_type: 'audio/webm'
                                         }).select().single()
+
+                                        if (dbError) {
+                                            alert(`Error saving to database: ${dbError.message}`)
+                                            console.error("DB Error:", dbError)
+                                            return
+                                        }
 
                                         if (newAsset) {
                                             // Optimistically update local state so UI shows it immediately
