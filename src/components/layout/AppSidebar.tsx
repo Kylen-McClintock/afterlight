@@ -9,6 +9,8 @@ import {
     Library, // Collections
     Lightbulb, // Meaning
     MessageSquarePlus, // Prompts
+    Settings,
+    LogOut,
     Menu,
     X,
     Users

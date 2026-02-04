@@ -37,9 +37,17 @@ export async function updateSession(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // Protected Routes Logic
+    // Protected Routes Logic
     if (request.nextUrl.pathname.startsWith('/app') && !user) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+
+    // Auth Redirect (User is logged in but hits login or root)
+    if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/') && user) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/app'
         return NextResponse.redirect(url)
     }
 

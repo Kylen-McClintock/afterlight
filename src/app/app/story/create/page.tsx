@@ -183,6 +183,7 @@ function CreateStoryContent() {
                     sourceType = 'file_upload'
                     if (file.type.startsWith('video')) assetType = 'video'
                     else if (file.type.startsWith('audio')) assetType = 'audio'
+                    else if (file.type.startsWith('image')) assetType = 'photo'
                 }
             } else if (activeTab === 'text') {
                 sourceType = 'text'
@@ -366,12 +367,12 @@ function CreateStoryContent() {
                                     <Upload className="h-6 w-6 text-primary" />
                                 </div>
                                 <div className="text-center space-y-1">
-                                    <p className="text-sm font-medium">Upload File</p>
-                                    <p className="text-xs text-muted-foreground">Audio or Video up to 50MB</p>
+                                    <p className="text-sm font-medium">Upload Media</p>
+                                    <p className="text-xs text-muted-foreground">Photos, Audio, or Video (up to 50MB)</p>
                                 </div>
                                 <Input
                                     type="file"
-                                    accept="audio/*,video/*"
+                                    accept="image/*,audio/*,video/*"
                                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                                     className="max-w-xs cursor-pointer"
                                 />
