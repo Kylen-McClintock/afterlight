@@ -104,9 +104,9 @@ function ContactCard({ contact, onUpdate }: { contact: any, onUpdate: () => void
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
                             {contact.first_name[0]}{contact.last_name?.[0]}
                         </div>
-                        <div>
-                            <h3 className="font-semibold leading-tight">{contact.first_name} {contact.last_name}</h3>
-                            <p className="text-xs text-muted-foreground">{contact.relationship || "Contact"}</p>
+                        <div className="min-w-0">
+                            <h3 className="font-semibold leading-tight truncate" title={`${contact.first_name} ${contact.last_name}`}>{contact.first_name} {contact.last_name}</h3>
+                            <p className="text-xs text-muted-foreground truncate">{contact.relationship || "Contact"}</p>
                         </div>
                     </div>
                     <EditContactDialog contact={contact} onSuccess={onUpdate} />
@@ -114,15 +114,15 @@ function ContactCard({ contact, onUpdate }: { contact: any, onUpdate: () => void
 
                 <div className="space-y-2 text-sm">
                     {contact.email && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            <span>{contact.email}</span>
+                        <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate" title={contact.email}>{contact.email}</span>
                         </div>
                     )}
                     {contact.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            <span>{contact.phone}</span>
+                        <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                            <Phone className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate" title={contact.phone}>{contact.phone}</span>
                         </div>
                     )}
                 </div>
