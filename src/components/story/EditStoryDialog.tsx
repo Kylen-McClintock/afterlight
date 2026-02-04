@@ -27,6 +27,7 @@ interface EditStoryDialogProps {
 
 export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogProps) {
     const [open, setOpen] = useState(false)
+    const [recorderOpen, setRecorderOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
     // Form State
@@ -524,7 +525,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                             </Dialog>
 
                             {/* Add Recording */}
-                            <Dialog>
+                            <Dialog open={recorderOpen} onOpenChange={setRecorderOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="sm">
                                         <Mic className="mr-2 h-4 w-4" />
@@ -563,6 +564,9 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             setAudioAssets([assetWithUrl])
                                             alert("Audio saved! Transcribing now...")
 
+                                            // Close recorder dialog immediately
+                                            setRecorderOpen(false)
+
                                             // Auto-Transcribe
                                             setTranscribing(true)
                                             try {
@@ -587,7 +591,6 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                 setTranscribing(false)
                                                 // Close dialogs and refresh parents only AFTER everything
                                                 onSuccess()
-                                                setOpen(false)
                                             }
                                         }
                                     }} />

@@ -76,9 +76,19 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 videoPreviewRef.current.srcObject = stream
             }
 
-            // Simplify: Let browser choose default MIME type for maximum compatibility
-            // Chrome -> audio/webm, Safari -> audio/mp4 usually.
-            const mediaRecorder = new MediaRecorder(stream)
+            console.log("Stream tracks:", stream.getTracks())
+
+            // Try to identify a supported mime type explicitly if possible, or fall back to default
+            let options: MediaRecorderOptions = {}
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                options = { mimeType: 'audio/webm;codecs=opus' }
+            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' }
+            }
+            // If neither, leave empty to let browser decide
+
+            console.log("Initializing MediaRecorder with options:", options)
+            const mediaRecorder = new MediaRecorder(stream, options)
             mediaRecorderRef.current = mediaRecorder
             chunksRef.current = []
 
@@ -106,8 +116,9 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 stopStream()
             }
 
-            // Start WITHOUT timeslice to get one cohesive blob at the end (simplest/most robust for short clips)
-            mediaRecorder.start()
+            // Start with timeslice (1000ms) to ensure chunks are fired periodically
+            // This is often more robust for keeping the recorder 'alive' and ensuring data is captured on all browsers
+            mediaRecorder.start(1000)
             setIsRecording(true)
             setIsPaused(false)
             setDuration(0)
