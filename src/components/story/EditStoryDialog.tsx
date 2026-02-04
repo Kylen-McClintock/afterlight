@@ -302,7 +302,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                         <Label>When did this happen?</Label>
                         <div className="flex gap-2 mb-2">
                             <Select value={dateGranularity} onValueChange={setDateGranularity}>
-                                <SelectTrigger className="w-[180px]">
+                                <SelectTrigger className="w-[240px]">
                                     <SelectValue placeholder="Precision" />
                                 </SelectTrigger>
                                 <SelectContent>

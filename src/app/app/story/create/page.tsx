@@ -173,6 +173,8 @@ function CreateStoryContent() {
                 } else if (file) {
                     const ext = file.name.split('.').pop()
                     const fileName = `${session.id}/${Date.now()}.${ext}`
+
+                    // Upload file first
                     const { error: uploadError } = await supabase.storage
                         .from('stories')
                         .upload(fileName, file)
@@ -181,6 +183,7 @@ function CreateStoryContent() {
                     storagePath = fileName
                     mimeType = file.type
                     sourceType = 'file_upload'
+
                     if (file.type.startsWith('video')) assetType = 'video'
                     else if (file.type.startsWith('audio')) assetType = 'audio'
                     else if (file.type.startsWith('image')) assetType = 'photo'
