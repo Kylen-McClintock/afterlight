@@ -102,9 +102,31 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 pb-3">
-                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                    {meditation.description || meditation.content || "No description."}
-                </p>
+                {meditation.type === 'wisdom' && meditation.metadata?.useful_thought ? (
+                    <div className="space-y-4">
+                        <div className="bg-primary/5 p-3 rounded-md border border-primary/10">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Useful Thought</span>
+                            <p className="font-medium text-primary text-sm italic">"{meditation.metadata.useful_thought}"</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                            {meditation.description}
+                        </p>
+                        {meditation.metadata.evidence_url && (
+                            <a
+                                href={meditation.metadata.evidence_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-muted-foreground hover:underline flex items-center gap-1 mt-2"
+                            >
+                                <span className="opacity-70">Evidence:</span> {meditation.metadata.evidence_title || "View Research"}
+                            </a>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                        {meditation.description || meditation.content || "No description."}
+                    </p>
+                )}
 
                 {/* Rating Section */}
                 <div className="flex items-center gap-1">

@@ -65,6 +65,7 @@ export default function MeditationsPage() {
                     <TabsTrigger value="audio">Audio</TabsTrigger>
                     <TabsTrigger value="video">Video</TabsTrigger>
                     <TabsTrigger value="text">Text</TabsTrigger>
+                    <TabsTrigger value="wisdom" className="gap-2"><Sparkles className="h-3 w-3" /> Wisdom</TabsTrigger>
                     <TabsTrigger value="history" className="gap-2"><History className="h-3 w-3" /> Favorites/History</TabsTrigger>
                 </TabsList>
 
