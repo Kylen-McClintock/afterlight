@@ -133,22 +133,45 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                                         <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                                             <FileText className="h-4 w-4" /> Transcript
                                         </h4>
-                                        {asset.text_content ? (
-                                            <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
-                                                {asset.text_content}
-                                            </div>
-                                        ) : (
-                                            <div className="p-4 bg-muted/10 rounded-md text-sm text-muted-foreground italic flex justify-between items-center">
-                                                <span>No transcript available yet.</span>
-                                                <Button variant="outline" size="sm" disabled>Request Transcription (Coming Soon)</Button>
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            // 1. Check if audio asset itself has text (legacy or direct attachment)
+                                            if (asset.text_content) {
+                                                return (
+                                                    <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
+                                                        {asset.text_content}
+                                                    </div>
+                                                )
+                                            }
+
+                                            // 2. Check for a separate 'text' asset that is a transcription
+                                            // We assume 1 transcription per story for now, or match loosely.
+                                            const transcriptAsset = story.story_assets.find((a: any) =>
+                                                a.asset_type === 'text' &&
+                                                a.source_type === 'transcription'
+                                            )
+
+                                            if (transcriptAsset) {
+                                                return (
+                                                    <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
+                                                        {transcriptAsset.text_content}
+                                                    </div>
+                                                )
+                                            }
+
+                                            // 3. Fallback
+                                            return (
+                                                <div className="p-4 bg-muted/10 rounded-md text-sm text-muted-foreground italic flex justify-between items-center">
+                                                    <span>No transcript found. (Edit story to generate one)</span>
+                                                </div>
+                                            )
+                                        })()}
                                     </div>
                                 </CardContent>
                             </Card>
                         )}
 
-                        {asset.asset_type === 'text' && (
+                        {/* Hide standalone transcription assets to avoid duplication if we showed them above */}
+                        {asset.asset_type === 'text' && asset.source_type !== 'transcription' && (
                             <div className="prose dark:prose-invert max-w-none p-6 bg-card rounded-lg border shadow-sm font-serif text-lg leading-relaxed">
                                 {asset.text_content}
                             </div>
