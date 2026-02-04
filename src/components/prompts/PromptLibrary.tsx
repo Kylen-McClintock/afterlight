@@ -81,20 +81,31 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
         setInviteOpen(true)
     }
 
-    const handleSendInvite = async () => {
+    const [userName, setUserName] = useState("A friend")
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user?.user_metadata?.full_name) {
+                setUserName(user.user_metadata.full_name)
+            }
+        }
+        fetchUser()
+    }, [])
+
+    const handleSendInvite = () => {
         if (!inviteEmails) return
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
 
         // Personal message
-        const senderName = user?.user_metadata?.full_name || "A friend"
+        // Using window.open ensures it's treated as navigation in some contexts, but href is standard for mailto
 
-        const subject = encodeURIComponent(`${senderName} would love to hear your story: ${selectedInvitePrompt?.title}`)
+        const subject = encodeURIComponent(`${userName} would love to hear your story: ${selectedInvitePrompt?.title}`)
         const url = `${window.location.origin}/app/story/create?promptId=${selectedInvitePrompt?.id}`
 
         const emailBody = `Hi,
 
-${senderName} is using AfterLight to preserve family memories and thought this question would be perfect for you to answer:
+${userName} is using AfterLight to preserve family memories and thought this question would be perfect for you to answer:
 
 "${selectedInvitePrompt?.prompt_text}"
 
@@ -109,11 +120,7 @@ Help us keep our stories alive.
         setInviteEmails("")
     }
 
-    const handleGlobalInvite = async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const senderName = user?.user_metadata?.full_name || "A friend"
-
+    const handleGlobalInvite = () => {
         const subject = encodeURIComponent(`Join me on AfterLight`)
         const url = `${window.location.origin}`
 
@@ -124,7 +131,7 @@ I'm using AfterLight to capture and preserve our family's most important stories
 Check it out here: ${url}
 
 Best,
-${senderName}`
+${userName}`
 
         window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(emailBody)}`
     }

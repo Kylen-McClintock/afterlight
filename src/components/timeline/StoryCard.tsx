@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Play, FileText, Image as ImageIcon, Video, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { MediaPlayer } from "./MediaPlayer"
 
 interface StoryAsset {
     id: string
@@ -44,13 +45,6 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const renderPreview = () => {
         if (!mainAsset) return null
 
-        // Construct public URL if not external
-        // If storage_path exists, use Supabase bucket URL
-        const assetUrl = mainAsset.external_url ||
-            (mainAsset.storage_path
-                ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${mainAsset.storage_path}`
-                : null)
-
         if (mainAsset.asset_type === 'text') {
             return (
                 <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3">
@@ -59,43 +53,18 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         }
 
-        if (mainAsset.asset_type === 'audio' && assetUrl) {
-            return (
-                <div className="flex flex-col gap-2 p-3 bg-secondary/20 rounded-md">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Play className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                            <audio controls src={assetUrl} className="w-full h-8" />
-                        </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground ml-14">
-                        {mainAsset.duration_seconds ? `${Math.floor(mainAsset.duration_seconds / 60)}:${(mainAsset.duration_seconds % 60).toString().padStart(2, '0')}` : "Audio Recording"}
-                    </p>
-                </div>
-            )
+        if ((mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video') && mainAsset.storage_path) {
+            // Use Client Component for playback to handle Signed URLs
+            return <MediaPlayer storagePath={mainAsset.storage_path} type={mainAsset.asset_type} duration={mainAsset.duration_seconds} />
         }
 
-        if (mainAsset.asset_type === 'video' && assetUrl) {
+        // Fallback or External URL
+        if (mainAsset.external_url && (mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video')) {
+            // Simplified handling for external URLs (not implemented fully for generic external yet)
             return (
-                <div className="relative aspect-video bg-black rounded-md overflow-hidden">
-                    <video
-                        controls
-                        src={assetUrl}
-                        className="w-full h-full object-contain"
-                        preload="metadata"
-                    />
-                </div>
-            )
-        }
-
-        // Fallback for missing URL
-        if ((mainAsset.asset_type === 'video' || mainAsset.asset_type === 'audio') && !assetUrl) {
-            return (
-                <div className="p-4 bg-destructive/10 text-destructive text-sm rounded-md">
-                    Media file not found.
-                </div>
+                <a href={mainAsset.external_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm p-4 block">
+                    View External Media
+                </a>
             )
         }
 
