@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -39,6 +39,27 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
     const [yearInput, setYearInput] = useState<string>(story.story_date ? new Date(story.story_date).getFullYear().toString() : new Date().getFullYear().toString())
     const [seasonInput, setSeasonInput] = useState<string>("Summer")
 
+    // Relationship State
+    const [relationshipLabel, setRelationshipLabel] = useState<string>(story.relationship_label || "None")
+    const [relationships, setRelationships] = useState<any[]>([])
+
+    // Fetch Relationships on mount
+    useEffect(() => {
+        const fetchRelationships = async () => {
+            const supabase = createClient()
+            const { data } = await supabase.from('relationships').select('*').order('category')
+            if (data) setRelationships(data)
+        }
+        fetchRelationships()
+    }, [])
+
+    // Group relationships
+    const groupedRelationships = relationships.reduce((acc, rel) => {
+        if (!acc[rel.category]) acc[rel.category] = []
+        acc[rel.category].push(rel)
+        return acc
+    }, {} as Record<string, any[]>)
+
     // Photo Upload State
     const [uploading, setUploading] = useState(false)
     const [photos, setPhotos] = useState<any[]>(story.story_assets?.filter((a: any) => a.asset_type === 'photo') || [])
@@ -60,10 +81,7 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 title: title,
                 story_date: finalDate,
                 date_granularity: dateGranularity,
-                // We could store season info in a separate column or metadata if critical,
-                // but for MVP granularity 'season' + date implies we might need more fields 
-                // OR we just assume 'Spring' = March, Summer = June etc. 
-                // Let's stick to simple logic for now.
+                relationship_label: relationshipLabel === "None" ? null : relationshipLabel
             })
             .eq('id', story.id)
 
@@ -142,6 +160,32 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                     <div className="space-y-2">
                         <Label>Title</Label>
                         <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                    </div>
+
+                    {/* Relationship/Author */}
+                    <div className="space-y-2">
+                        <Label>Who is telling this story?</Label>
+                        <Select value={relationshipLabel} onValueChange={setRelationshipLabel}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select relationship..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">Me (Primary User)</SelectItem>
+                                {Object.entries(groupedRelationships).map(([category, rels]) => (
+                                    <div key={category}>
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/20">
+                                            {category}
+                                        </div>
+                                        {/* @ts-ignore */}
+                                        {rels.map((rel: any) => (
+                                            <SelectItem key={rel.id} value={rel.label}>
+                                                {rel.label}
+                                            </SelectItem>
+                                        ))}
+                                    </div>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Date Section */}
