@@ -81,25 +81,52 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
         setInviteOpen(true)
     }
 
-    const handleSendInvite = () => {
+    const handleSendInvite = async () => {
         if (!inviteEmails) return
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
 
-        // MVP: Use mailto with specific emails
-        const subject = encodeURIComponent(`Question for you: ${selectedInvitePrompt?.title || 'A story prompt'}`)
+        // Personal message
+        const senderName = user?.user_metadata?.full_name || "A friend"
+
+        const subject = encodeURIComponent(`${senderName} would love to hear your story: ${selectedInvitePrompt?.title}`)
         const url = `${window.location.origin}/app/story/create?promptId=${selectedInvitePrompt?.id}`
-        const body = encodeURIComponent(`${selectedInvitePrompt?.prompt_text}\n\nI'd love for you to answer this using AfterLight:\n${url}`)
 
-        window.location.href = `mailto:${inviteEmails}?subject=${subject}&body=${body}`
+        const emailBody = `Hi,
+
+${senderName} is using AfterLight to preserve family memories and thought this question would be perfect for you to answer:
+
+"${selectedInvitePrompt?.prompt_text}"
+
+You can answer it directly here:
+${url}
+
+Help us keep our stories alive.
+`
+
+        window.location.href = `mailto:${inviteEmails}?subject=${subject}&body=${encodeURIComponent(emailBody)}`
         setInviteOpen(false)
         setInviteEmails("")
     }
 
-    const handleGlobalInvite = () => {
-        // General invite to share stories
-        const subject = encodeURIComponent("Share your stories with me")
+    const handleGlobalInvite = async () => {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const senderName = user?.user_metadata?.full_name || "A friend"
+
+        const subject = encodeURIComponent(`Join me on AfterLight`)
         const url = `${window.location.origin}`
-        const body = encodeURIComponent(`I'm using AfterLight to preserve our family memories. I'd love for you to join me and share some of your own stories.\n\nCheck it out here: ${url}`)
-        window.location.href = `mailto:?subject=${subject}&body=${body}`
+
+        const emailBody = `Hi,
+
+I'm using AfterLight to capture and preserve our family's most important stories and values. I'd love for you to join me so we can keep these memories forever.
+
+Check it out here: ${url}
+
+Best,
+${senderName}`
+
+        window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(emailBody)}`
     }
 
     return (

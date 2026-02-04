@@ -11,6 +11,7 @@ interface StoryAsset {
     external_url?: string | null
     text_content?: string | null
     duration_seconds?: number | null
+    storage_path?: string | null
 }
 
 interface StorySession {
@@ -43,6 +44,13 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const renderPreview = () => {
         if (!mainAsset) return null
 
+        // Construct public URL if not external
+        // If storage_path exists, use Supabase bucket URL
+        const assetUrl = mainAsset.external_url ||
+            (mainAsset.storage_path
+                ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${mainAsset.storage_path}`
+                : null)
+
         if (mainAsset.asset_type === 'text') {
             return (
                 <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3">
@@ -51,33 +59,42 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         }
 
-        if (mainAsset.asset_type === 'audio') {
+        if (mainAsset.asset_type === 'audio' && assetUrl) {
             return (
-                <div className="flex items-center gap-3 p-3 bg-secondary/20 rounded-md">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Play className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                        <div className="h-1 bg-secondary rounded-full w-full">
-                            <div className="h-1 bg-primary rounded-full w-1/3"></div>
+                <div className="flex flex-col gap-2 p-3 bg-secondary/20 rounded-md">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Play className="h-5 w-5 text-primary" />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {mainAsset.duration_seconds ? `${Math.floor(mainAsset.duration_seconds / 60)}:${(mainAsset.duration_seconds % 60).toString().padStart(2, '0')}` : "Audio Recording"}
-                        </p>
+                        <div className="flex-1">
+                            <audio controls src={assetUrl} className="w-full h-8" />
+                        </div>
                     </div>
+                    <p className="text-xs text-muted-foreground ml-14">
+                        {mainAsset.duration_seconds ? `${Math.floor(mainAsset.duration_seconds / 60)}:${(mainAsset.duration_seconds % 60).toString().padStart(2, '0')}` : "Audio Recording"}
+                    </p>
                 </div>
             )
         }
 
-        if (mainAsset.asset_type === 'video') {
+        if (mainAsset.asset_type === 'video' && assetUrl) {
             return (
-                <div className="relative aspect-video bg-black/5 rounded-md flex items-center justify-center">
-                    <Video className="h-12 w-12 text-muted-foreground/50" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-12 w-12 rounded-full bg-white/90 shadow-sm flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
-                            <Play className="h-5 w-5 text-black ml-1" />
-                        </div>
-                    </div>
+                <div className="relative aspect-video bg-black rounded-md overflow-hidden">
+                    <video
+                        controls
+                        src={assetUrl}
+                        className="w-full h-full object-contain"
+                        preload="metadata"
+                    />
+                </div>
+            )
+        }
+
+        // Fallback for missing URL
+        if ((mainAsset.asset_type === 'video' || mainAsset.asset_type === 'audio') && !assetUrl) {
+            return (
+                <div className="p-4 bg-destructive/10 text-destructive text-sm rounded-md">
+                    Media file not found.
                 </div>
             )
         }
