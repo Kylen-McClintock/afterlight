@@ -73,7 +73,7 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
             })
 
             // Verify Tracks
-            stream.getAudioTracks().forEach(track => {
+            stream.getAudioTracks().forEach((track: MediaStreamTrack) => {
                 console.log(`Track: ${track.label}, Enabled: ${track.enabled}, Muted: ${track.muted}, State: ${track.readyState}`)
                 if (!track.enabled || track.muted) {
                     alert("Warning: Microphone track is muted or disabled.")
@@ -119,7 +119,7 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
             mediaRecorderRef.current = mediaRecorder
             chunksRef.current = []
 
-            mediaRecorder.ondataavailable = (e) => {
+            mediaRecorder.ondataavailable = (e: BlobEvent) => {
                 if (e.data && e.data.size > 0) {
                     chunksRef.current.push(e.data)
                     setDebugInfo(prev => prev + ` .`)
