@@ -88,7 +88,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
     const currentRating = interaction?.rating || 0
 
     return (
-        <Card className="group hover:border-primary/50 transition-all flex flex-col h-full">
+        <Card className="group hover:border-primary/50 transition-all flex flex-col h-full relative">
             <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                     <CardTitle className="text-base font-semibold line-clamp-1" title={meditation.title}>
