@@ -51,7 +51,7 @@ export function StoryImage({ storagePath, alt = "Story memory", className }: Sto
         <img
             src={url}
             alt={alt}
-            className={className}
+            className={`w-full h-full object-cover ${className || ""}`}
         />
     )
 }
