@@ -25,7 +25,7 @@ export default function DashboardPage() {
                 {/* Right Col: Mindfulness */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Daily Wisdom Row */}
-                    <div className="h-48">
+                    <div className="min-h-[12rem]">
                         <InspirationWidget />
                     </div>
 

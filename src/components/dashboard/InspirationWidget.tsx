@@ -47,7 +47,7 @@ export function InspirationWidget() {
                         <div className="h-12 w-3/4 bg-muted/20 animate-pulse rounded" />
                     ) : quote ? (
                         <div className="space-y-4">
-                            <blockquote className="italic font-serif text-lg leading-relaxed text-foreground/90">
+                            <blockquote className="italic font-serif text-lg leading-relaxed text-foreground/90 line-clamp-6 hover:line-clamp-none transition-all">
                                 "{quote.quote_text}"
                             </blockquote>
                             <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
