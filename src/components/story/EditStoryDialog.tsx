@@ -112,6 +112,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
     // Photo Upload State
     const [uploading, setUploading] = useState(false)
+    const [transcribing, setTranscribing] = useState(false)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
     const [photos, setPhotos] = useState<any[]>(story.story_assets?.filter((a: any) => a.asset_type === 'photo') || [])
 
     const handleSave = async () => {
@@ -199,6 +201,74 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         }
         setUploading(false)
         e.target.value = "" // Reset input
+    }
+
+    const [isPlaying, setIsPlaying] = useState(false)
+
+    const handleTranscribe = async () => {
+        // Find audio URL
+        const audioMedia = story.media?.find((m: any) => m.type === 'audio')
+        if (!audioMedia?.url) return
+
+        setTranscribing(true)
+        try {
+            const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audioUrl: audioMedia.url })
+            })
+
+            const data = await response.json()
+            if (data.error) throw new Error(data.error)
+
+            if (data.text) {
+                const note = data.text
+                const supabase = createClient()
+                // Auto-save as a text asset or append to content?
+                // The prompt said "Save transcript to Story content (or asset)"
+                // Let's prompt user or just save it. 
+                // The implementation plan said "append or replace the content".
+                // In this file, content is just one part. 
+                // BUT wait, this dialog doesn't seem to have a `content` field visible in the form?
+                // Looking at lines 219-400... 
+                // It has Title, Location, Date, Photos.
+                // It has "Add Content" -> Text Note.
+                // It does NOT have a main "Story Text" body editor visible in the specific lines I saw?
+                // Let me check lines 220-300 again.
+                // Title (223).
+                // Location (229).
+                // Shared With (233).
+                // Relationship (275).
+                // Date (300).
+                // Photos (337).
+                // Add Content (372).
+
+                // Ah, this dialog might be metadata only?
+                // But `handleSave` updates: title, story_date, location, relationship_label.
+                // It does NOT update `content`.
+                // However, there is "Add Note" (Line 406) which inserts into `story_assets` (type=text).
+
+                // So, for transcription, we should probably insert a NEW `story_asset` of type `text` (or `transcript`).
+                // OR append to an existing one?
+                // Let's insert a new text asset with the transcript.
+
+                await supabase.from('story_assets').insert({
+                    story_session_id: story.id,
+                    asset_type: 'text',
+                    source_type: 'transcription',
+                    text_content: data.text
+                })
+
+                alert("Transcription complete! Added as a note.")
+                onSuccess() // Refresh to show it?
+                // Ideally we'd update local state but onSuccess triggers refresh in parent ideally.
+            }
+        } catch (error) {
+            console.error("Transcription failed", error)
+            alert("Failed to transcribe audio. Please try again.")
+        } finally {
+            setTranscribing(false)
+        }
     }
 
     // Helper to delete photo? (Maybe later)
