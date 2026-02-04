@@ -200,7 +200,7 @@ function CreateStoryContent() {
         return (
             <div className="max-w-5xl mx-auto">
                 <PromptLibrary
-                    onSelect={(prompt) => router.push(`/app/story/create?promptId=${prompt.id}`)}
+                    onSelect={(prompt: any) => router.push(`/app/story/create?promptId=${prompt.id}`)}
                     onFreeForm={() => router.push(`/app/story/create?mode=audio`)}
                 />
             </div>
