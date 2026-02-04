@@ -44,7 +44,9 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
     const [location, setLocation] = useState(story.location || "")
     const [dateGranularity, setDateGranularity] = useState<string>(story.date_granularity || "exact")
-    const [storyDate, setStoryDate] = useState<string>(story.story_date || "")
+    const [storyDate, setStoryDate] = useState<string>(
+        story.story_date ? story.story_date.split('T')[0] : ""
+    )
     // Using string for date input (YYYY-MM-DD)
 
     // For fuzzy dates (Year/Season), we might want separate inputs, 
