@@ -76,25 +76,9 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 videoPreviewRef.current.srcObject = stream
             }
 
-            // Determine supported MIME type
-            let mimeType = 'audio/webm'
-            if (mode === 'audio') {
-                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                    mimeType = 'audio/webm;codecs=opus'
-                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    mimeType = 'audio/mp4' // Safari fallback
-                }
-            } else {
-                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-                    mimeType = 'video/webm;codecs=vp9'
-                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-                    mimeType = 'video/mp4'
-                }
-            }
-
-            console.log("Starting recording with MIME:", mimeType)
-
-            const mediaRecorder = new MediaRecorder(stream, { mimeType })
+            // Simplify: Let browser choose default MIME type for maximum compatibility
+            // Chrome -> audio/webm, Safari -> audio/mp4 usually.
+            const mediaRecorder = new MediaRecorder(stream)
             mediaRecorderRef.current = mediaRecorder
             chunksRef.current = []
 
@@ -105,20 +89,25 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
             }
 
             mediaRecorder.onstop = () => {
-                // Ensure we have data
                 if (chunksRef.current.length === 0) {
                     console.error("No data chunks recorded!")
                     setPermissionError("Recording failed: No audio data collected. Please check permissions.")
                     return
                 }
+                // create blob with generic types first, or fallback
+                // We won't specify type to Blob constructor to let it infer from chunks or just generic
+                // Actually, for playback, we might need it. 
+                // Let's try to detect valid type from the recorder itself if possible, or just default to webm which works in Chrome.
+                // For Safari, it might need mp4.
+                const mimeType = mediaRecorder.mimeType || (mode === 'video' ? 'video/webm' : 'audio/webm')
                 const blob = new Blob(chunksRef.current, { type: mimeType })
-                console.log("Recording finished. Blob size:", blob.size)
+                console.log("Recording finished. Blob size:", blob.size, "MIME:", mimeType)
                 setMediaBlob(blob)
                 stopStream()
             }
 
-            // Start with timeslice to ensure frequent chunks (helps with debugging and some browser quirks)
-            mediaRecorder.start(1000)
+            // Start WITHOUT timeslice to get one cohesive blob at the end (simplest/most robust for short clips)
+            mediaRecorder.start()
             setIsRecording(true)
             setIsPaused(false)
             setDuration(0)

@@ -434,31 +434,30 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 ) : (
                                     (audioAssets.length > 0) ? (
-                                        <div className="flex flex-col items-center justify-center h-full w-full p-2">
+                                        <div className="flex flex-col items-center justify-center h-full w-full p-2 bg-muted/40 rounded-md">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <Button variant="ghost" size="icon" onClick={() => audioRef.current?.pause()} disabled={!isPlaying} type="button">
-                                                    <Pause className="h-4 w-4" />
+                                                <Button variant="ghost" size="icon" onClick={() => audioRef.current?.paused ? audioRef.current?.play() : audioRef.current?.pause()} type="button">
+                                                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                                                 </Button>
-                                                <span className="text-xs text-muted-foreground ml-2">Audio Recording Attached</span>
+                                                <span className="text-xs text-muted-foreground font-medium">Recorded</span>
                                             </div>
+
+                                            {/* Explicit Transcribe Button */}
                                             <Button
-                                                variant="outline"
+                                                variant="secondary"
                                                 size="sm"
-                                                className="ml-auto gap-2"
+                                                className="w-full text-xs h-7 gap-1"
                                                 onClick={handleTranscribe}
                                                 disabled={transcribing}
                                                 type="button"
                                             >
                                                 {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-                                                {transcribing ? "Transcribing..." : "Transcribe"}
+                                                {transcribing ? "..." : "Transcribe"}
                                             </Button>
+
                                             <audio
                                                 ref={audioRef}
-                                                src={audioAssets[0].url || ""} // Only works if URL is present. If asset only has path, we might need to fetch it.
-                                                // If we came from story_assets (raw), we might not have 'url'. 
-                                                // But usually the parent fetches signed URLs.
-                                                // If not, we might fail to play until reload. 
-                                                // Ideally we generate a signed URL here if missing, but for now let's rely on 'media' or the one we optimistically added.
+                                                src={audioAssets[0].url || ""}
                                                 onPlay={() => setIsPlaying(true)}
                                                 onPause={() => setIsPlaying(false)}
                                                 onEnded={() => setIsPlaying(false)}
