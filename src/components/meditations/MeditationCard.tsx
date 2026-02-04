@@ -161,6 +161,29 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                     {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
                     Add to Plan
                 </Button>
+
+                {meditation.type === 'video' && (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="default" size="sm" className="text-xs h-7 px-2 ml-2 bg-red-600 hover:bg-red-700 text-white">
+                                <Play className="h-3 w-3 mr-1" /> Watch
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle>{meditation.title}</DialogTitle>
+                            </DialogHeader>
+                            <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
+                                <iframe
+                                    src={meditation.content}
+                                    className="w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </CardFooter>
         </Card>
     )
