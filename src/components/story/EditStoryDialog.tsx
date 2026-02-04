@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/client"
-import { Loader2, Upload, Image as ImageIcon, X, FileText, Mic, Users, UserPlus } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, X, Upload, Mic, Play, Pause, Wand2 } from "lucide-react"
 import { StoryRecorder } from "./StoryRecorder"
 import { StoryImage } from "@/components/timeline/StoryImage"
 
@@ -351,10 +351,39 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 {uploading ? (
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 ) : (
-                                    <>
-                                        <PlusIcon className="h-6 w-6 text-muted-foreground mb-1" />
-                                        <span className="text-[10px] text-muted-foreground font-medium">Add Photo</span>
-                                    </>
+                                    story.media.some((m: any) => m.type === 'audio') ? (
+                                        <div className="flex flex-col items-center justify-center h-full w-full p-2">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Button variant="ghost" size="icon" onClick={() => audioRef.current?.pause()} disabled={!isPlaying}>
+                                                    <Pause className="h-4 w-4" />
+                                                </Button>
+                                                <span className="text-xs text-muted-foreground ml-2">Audio Recording Attached</span>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="ml-auto gap-2"
+                                                onClick={handleTranscribe}
+                                                disabled={transcribing}
+                                            >
+                                                {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                                                {transcribing ? "Transcribing..." : "Transcribe"}
+                                            </Button>
+                                            <audio
+                                                ref={audioRef}
+                                                src={story.media.find((m: any) => m.type === 'audio').url}
+                                                onPlay={() => setIsPlaying(true)}
+                                                onPause={() => setIsPlaying(false)}
+                                                onEnded={() => setIsPlaying(false)}
+                                                className="hidden"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <PlusIcon className="h-6 w-6 text-muted-foreground mb-1" />
+                                            <span className="text-[10px] text-muted-foreground font-medium">Add Photo</span>
+                                        </>
+                                    )
                                 )}
                                 <input
                                     type="file"
