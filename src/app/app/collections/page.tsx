@@ -176,7 +176,10 @@ function CreateCollectionForm({ onSuccess }: { onSuccess: () => void }) {
             name: name,
             type: 'user_defined'
         })
-        if (error) alert("Error creating collection")
+        if (error) {
+            console.error("Collection Create Error:", error)
+            alert(`Error creating collection: ${error.message}`)
+        }
         else onSuccess()
         setLoading(false)
     }

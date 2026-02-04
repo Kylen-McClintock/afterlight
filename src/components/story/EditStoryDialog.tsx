@@ -481,13 +481,13 @@ function CollectionSelector({ storyId }: { storyId: string }) {
         setLoading(true)
         const supabase = createClient()
         const { error } = await supabase
-            .from('custom_collection_items')
+            .from('prompt_collection_items')
             .insert({
                 collection_id: selected,
                 story_id: storyId
             })
 
-        if (error) alert("Error adding to collection")
+        if (error) alert(`Error adding to collection: ${error.message}`)
         else {
             alert("Added!")
             window.location.reload()
