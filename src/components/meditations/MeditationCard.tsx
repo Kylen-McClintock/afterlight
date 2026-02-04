@@ -193,11 +193,49 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             </div>
                         )}
 
-                        {meditation.content && meditation.type === 'text' && (
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                        {(meditation.content && (meditation.type === 'text' || meditation.type === 'poem')) && (
+                            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
                                 {meditation.content}
                             </div>
                         )}
+
+                        {/* Interactions in Expanded View */}
+                        <div className="pt-6 mt-4 border-t flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            disabled={loading}
+                                            onClick={() => handleRating(star)}
+                                            className="focus:outline-none transition-transform hover:scale-110"
+                                            title="Rate usefulness"
+                                        >
+                                            <Star
+                                                className={cn(
+                                                    "h-5 w-5",
+                                                    star <= currentRating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30 hover:text-yellow-400"
+                                                )}
+                                            />
+                                        </button>
+                                    ))}
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                        {currentRating > 0 ? "Rated" : "Rate Usefulness"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowNotes(true)}>
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    {interaction?.notes ? "View/Edit Notes" : "Add Note"}
+                                </Button>
+                                <Button variant="default" size="sm" className="flex-1" onClick={addToPlan} disabled={loading}>
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                                    Add to Plan
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
