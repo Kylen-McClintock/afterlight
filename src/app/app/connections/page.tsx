@@ -359,13 +359,34 @@ function ImportDialog({ onSuccess }: { onSuccess: () => void }) {
         for (let i = startIdx; i < rows.length; i++) {
             const cols = rows[i].split(",").map(c => c.trim())
             if (cols.length < 1) continue
-            // Basic mapping
+            // Smarter mapping
+            let fname = cols[0]
+            let lname = cols[1] || ""
+            let email = cols[2] || ""
+            let rel = cols[3] || "Imported"
+
+            // Fix: If user pasted "First Last, Email" (3 cols) instead of "First, Last, Email"
+            // Or if CSV parser split weirdly
+
+            // Check if lname looks like an email
+            if (lname.includes("@") && !email) {
+                email = lname
+                lname = ""
+            }
+
+            // Check if fname has multiple words and lname is empty? 
+            // Maybe handle "Ethan Brown" in col 0? 
+            if (fname.includes(" ") && !lname && !email) {
+                // Heuristic: "Ethan Brown, email@..." vs "Ethan Brown"
+                // If col[1] is email..
+            }
+
             contactsToInsert.push({
                 circle_id: membership.circle_id,
-                first_name: cols[0],
-                last_name: cols[1] || "",
-                email: cols[2] || "",
-                relationship: cols[3] || "Imported"
+                first_name: fname,
+                last_name: lname,
+                email: email,
+                relationship: rel
             })
         }
 
