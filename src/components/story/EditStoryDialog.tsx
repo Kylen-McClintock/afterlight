@@ -561,16 +561,35 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                             // Optimistically update local state so UI shows it immediately
                                             // We add a 'url' property to mimic what the UI expects if it looks for 'url'
                                             const assetWithUrl = { ...newAsset, url: publicUrl }
-                                            setAudioAssets([assetWithUrl]) // Assuming one audio per story for now or append? Let's replace to avoid duplicates if mainly one.
-                                            onSuccess()
-                                            setOpen(false) // This closes the MAIN dialog? No, we are in a nested dialog.
-                                            // Wait, `setOpen` is for the EditStoryDialog. 
-                                            // We actually want to close the *Recording* dialog.
-                                            // The Recording Dialog is controlled by its own Trigger/Content unless we control it.
-                                            // Since it's uncontrolled here (Trigger/Content), we might need to use a Ref or controlled state for the inner dialog if we want to close it programmatically.
-                                            // Ideally, we just let the user close it or success feedback.
-                                            alert("Audio saved!")
-                                            // We DON'T reload window. 
+                                            setAudioAssets([assetWithUrl])
+                                            alert("Audio saved! Transcribing now...")
+
+                                            // Auto-Transcribe
+                                            setTranscribing(true)
+                                            try {
+                                                const response = await fetch('/api/transcribe', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ audioUrl: publicUrl })
+                                                })
+                                                const data = await response.json()
+                                                if (data.text) {
+                                                    await supabase.from('story_assets').insert({
+                                                        story_session_id: story.id,
+                                                        asset_type: 'text',
+                                                        source_type: 'transcription',
+                                                        text_content: data.text
+                                                    })
+                                                    alert("Transcription complete! Added as a note.")
+                                                }
+                                            } catch (err) {
+                                                console.error("Auto-transcription failed", err)
+                                            } finally {
+                                                setTranscribing(false)
+                                                // Close dialogs and refresh parents only AFTER everything
+                                                onSuccess()
+                                                setOpen(false)
+                                            }
                                         }
                                     }} />
                                 </DialogContent>

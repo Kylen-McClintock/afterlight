@@ -76,7 +76,25 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 videoPreviewRef.current.srcObject = stream
             }
 
-            const mediaRecorder = new MediaRecorder(stream)
+            // Determine supported MIME type
+            let mimeType = 'audio/webm'
+            if (mode === 'audio') {
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mimeType = 'audio/webm;codecs=opus'
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4' // Safari fallback
+                }
+            } else {
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                    mimeType = 'video/webm;codecs=vp9'
+                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    mimeType = 'video/mp4'
+                }
+            }
+
+            console.log("Starting recording with MIME:", mimeType)
+
+            const mediaRecorder = new MediaRecorder(stream, { mimeType })
             mediaRecorderRef.current = mediaRecorder
             chunksRef.current = []
 
@@ -87,12 +105,20 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
             }
 
             mediaRecorder.onstop = () => {
-                const blob = new Blob(chunksRef.current, { type: mode === "video" ? "video/webm" : "audio/webm" })
+                // Ensure we have data
+                if (chunksRef.current.length === 0) {
+                    console.error("No data chunks recorded!")
+                    setPermissionError("Recording failed: No audio data collected. Please check permissions.")
+                    return
+                }
+                const blob = new Blob(chunksRef.current, { type: mimeType })
+                console.log("Recording finished. Blob size:", blob.size)
                 setMediaBlob(blob)
                 stopStream()
             }
 
-            mediaRecorder.start()
+            // Start with timeslice to ensure frequent chunks (helps with debugging and some browser quirks)
+            mediaRecorder.start(1000)
             setIsRecording(true)
             setIsPaused(false)
             setDuration(0)
