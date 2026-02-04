@@ -66,6 +66,7 @@ export default function MeditationsPage() {
                     <TabsTrigger value="video">Video</TabsTrigger>
                     <TabsTrigger value="text">Text</TabsTrigger>
                     <TabsTrigger value="wisdom" className="gap-2"><Sparkles className="h-3 w-3" /> Wisdom</TabsTrigger>
+                    <TabsTrigger value="poetry" className="gap-2"><FileText className="h-3 w-3" /> Poetry</TabsTrigger>
                     <TabsTrigger value="history" className="gap-2"><History className="h-3 w-3" /> Favorites/History</TabsTrigger>
                 </TabsList>
 
@@ -135,6 +136,14 @@ export default function MeditationsPage() {
                 <TabsContent value="wisdom">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {meditations.filter(m => m.type === 'wisdom').map(med => (
+                            <MeditationCard key={med.id} meditation={med} interaction={interactions[med.id]} onUpdate={fetchData} />
+                        ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="poetry">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {meditations.filter(m => m.type === 'poem').map(med => (
                             <MeditationCard key={med.id} meditation={med} interaction={interactions[med.id]} onUpdate={fetchData} />
                         ))}
                     </div>

@@ -112,6 +112,18 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             {meditation.description}
                         </p>
                     </div>
+                ) : meditation.type === 'poem' ? (
+                    <div className="space-y-2">
+                        {meditation.metadata?.author && (
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{meditation.metadata.author}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground line-clamp-4 italic">
+                            {meditation.content}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                            <span className="font-semibold">Why:</span> {meditation.description}
+                        </p>
+                    </div>
                 ) : (
                     <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                         {meditation.description || meditation.content || "No description."}
