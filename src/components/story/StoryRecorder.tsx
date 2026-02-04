@@ -55,11 +55,9 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
     }, {} as Record<string, any[]>)
 
 
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-    const chunksRef = useRef<Blob[]>([])
-    const timerRef = useRef<NodeJS.Timeout | null>(null)
-    const videoPreviewRef = useRef<HTMLVideoElement | null>(null)
-    const streamRef = useRef<MediaStream | null>(null)
+    const analyzerRef = useRef<AnalyserNode | null>(null)
+    const audioContextRef = useRef<AudioContext | null>(null)
+    const [volumeLevel, setVolumeLevel] = useState(0)
 
     const startRecording = async () => {
         try {
@@ -69,23 +67,50 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 video: mode === "video"
             })
 
+            // Verify Tracks
+            stream.getAudioTracks().forEach(track => {
+                console.log(`Track: ${track.label}, Enabled: ${track.enabled}, Muted: ${track.muted}, State: ${track.readyState}`)
+                if (!track.enabled || track.muted) {
+                    alert("Warning: Microphone track is muted or disabled.")
+                }
+            })
+
             streamRef.current = stream
 
             if (mode === "video" && videoPreviewRef.current) {
                 videoPreviewRef.current.srcObject = stream
             }
 
-            // NUCLEAR OPTION: Default to browser standard. No custom MIME options.
-            // Chrome/Mac works best with default or explicit audio/webm
-            let options: MediaRecorderOptions | undefined = undefined;
-            if (MediaRecorder.isTypeSupported("audio/webm")) {
-                options = { mimeType: "audio/webm" }
+            // Web Audio API Analyzer (Visual Proof of Sound)
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+            audioContextRef.current = audioContext
+            const source = audioContext.createMediaStreamSource(stream)
+            const analyzer = audioContext.createAnalyser()
+            analyzer.fftSize = 256
+            source.connect(analyzer)
+            analyzerRef.current = analyzer
+
+            // Determine MIME Type (Safest for Mac/Chrome mix)
+            // Priority: audio/mp4 (best for Safari/Mac), then audio/webm (Chrome)
+            const types = [
+                "audio/mp4",
+                "audio/webm;codecs=opus",
+                "audio/webm",
+                "audio/ogg"
+            ]
+            let selectedType = ""
+            for (const t of types) {
+                if (MediaRecorder.isTypeSupported(t)) {
+                    selectedType = t
+                    break
+                }
             }
+            if (!selectedType) selectedType = "audio/webm" // Fallback
 
-            console.log("Starting MediaRecorder with options:", options)
-            setDebugInfo(`Init: ${options?.mimeType || 'default'} | Tracks: ${stream.getAudioTracks().length}`)
+            console.log("Starting MediaRecorder with type:", selectedType)
+            setDebugInfo(`Init: ${selectedType}`)
 
-            const mediaRecorder = new MediaRecorder(stream, options)
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: selectedType })
             mediaRecorderRef.current = mediaRecorder
             chunksRef.current = []
 
@@ -98,13 +123,13 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
 
             mediaRecorder.onstop = () => {
                 console.log("Recorder stopped. Chunks:", chunksRef.current.length)
-                const type = mediaRecorder.mimeType || (mode === 'video' ? 'video/webm' : 'audio/webm')
+                const type = mediaRecorder.mimeType || selectedType
                 const blob = new Blob(chunksRef.current, { type })
                 console.log("Blob created:", blob.size, type)
                 setDebugInfo(`Stopped. Size: ${blob.size} bytes. Type: ${type}`)
 
-                if (blob.size === 0) {
-                    setPermissionError("Error: 0-byte recording. Please check microphone.")
+                if (blob.size < 1000) { // < 1KB is suspicious for any clip > 1sec
+                    setPermissionError(`Warning: File too small (${blob.size}b). Mic likely blocked or silent.`)
                 } else {
                     setMediaBlob(blob)
                 }
@@ -112,8 +137,8 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 stopStream()
             }
 
-            // Start normally. No timeslice for max compatibility with default blobs.
-            mediaRecorder.start()
+            // Use timeslice to force periodic data output (fix for some Chrome silences)
+            mediaRecorder.start(1000)
             setIsRecording(true)
             setIsPaused(false)
             setDuration(0)
@@ -123,21 +148,60 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
             }, 1000)
 
             setPermissionError(null)
+
+            // Volume Meter Loop
+            const checkVolume = () => {
+                if (!analyzerRef.current || !isRecording) return
+                const dataArray = new Uint8Array(analyzerRef.current.frequencyBinCount)
+                analyzerRef.current.getByteFrequencyData(dataArray)
+                const vol = dataArray.reduce((subject, a) => subject + a, 0) / dataArray.length
+                setVolumeLevel(vol) // Update react state for UI meter
+                if (isRecording) requestAnimationFrame(checkVolume)
+            }
+            // requestAnimationFrame(checkVolume) // Triggered via useEffect or just running it now?
+            // Since isRecording state inside closure might be stale, use ref or rely on component re-render?
+            // Let's use a separate useEffect for the analyzer loop to be safe.
+
         } catch (err: any) {
             console.error("Error accessing media devices:", err)
             setPermissionError(`Microphone Error: ${err.message || err.name}`)
         }
     }
 
+    // Volume Loop Effect
+    useEffect(() => {
+        let animId: number
+        const updateMeter = () => {
+            if (isRecording && analyzerRef.current) {
+                const dataArray = new Uint8Array(analyzerRef.current.frequencyBinCount)
+                analyzerRef.current.getByteFrequencyData(dataArray)
+                const vol = dataArray.reduce((s, a) => s + a, 0) / dataArray.length
+                setVolumeLevel(vol)
+                animId = requestAnimationFrame(updateMeter)
+            }
+        }
+        if (isRecording) {
+            updateMeter()
+        } else {
+            setVolumeLevel(0)
+        }
+        return () => cancelAnimationFrame(animId)
+    }, [isRecording])
+
+
     const stopStream = () => {
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop())
             streamRef.current = null
         }
+        if (audioContextRef.current) {
+            audioContextRef.current.close()
+            audioContextRef.current = null
+        }
     }
 
     const stopRecording = () => {
-        if (mediaRecorderRef.current && isRecording) {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             mediaRecorderRef.current.stop()
             setIsRecording(false)
             setIsPaused(false)
@@ -216,6 +280,16 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                     <div className={`text-5xl font-mono font-bold tabular-nums tracking-wider ${isRecording ? "text-red-500 animate-pulse" : "text-foreground"}`}>
                         {formatTime(duration)}
                     </div>
+                    {/* Volume Meter */}
+                    {isRecording && (
+                        <div className="w-32 h-2 bg-muted rounded-full overflow-hidden mt-1">
+                            <div
+                                className="h-full bg-green-500 transition-all duration-75 ease-out"
+                                style={{ width: `${Math.min(100, volumeLevel * 2)}%` }} // amplifying level for visibility
+                            />
+                        </div>
+                    )}
+
                     {/* Debug Info */}
                     <div className="text-[10px] text-muted-foreground mt-2 max-w-[200px] text-center font-mono break-all opacity-70">
                         {debugInfo}
