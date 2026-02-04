@@ -71,6 +71,8 @@ function CreateStoryContent() {
 
     // Recorder State
     const [title, setTitle] = useState("")
+    const [storyDate, setStoryDate] = useState("")
+    const [location, setLocation] = useState("")
     const [textContent, setTextContent] = useState("")
     const [file, setFile] = useState<File | null>(null)
     const [isSaving, setIsSaving] = useState(false)
@@ -91,10 +93,13 @@ function CreateStoryContent() {
     }
 
     const handleUnifiedSave = async (mediaBlob?: Blob) => {
-        if (!title.trim()) {
+        // Title Logic: Use input or prompt title. If neither, require input.
+        const activeTitle = title.trim() || (selectedPrompt ? selectedPrompt.title : "")
+        if (!activeTitle) {
             alert("Please give your story a title.")
             return
         }
+
         if (activeTab === 'text' && !textContent.trim()) {
             alert("Please write your story.")
             return
@@ -117,7 +122,9 @@ function CreateStoryContent() {
             // 1. Create Session
             const sessionData = {
                 circle_id: circleId,
-                title: title,
+                title: activeTitle,
+                story_date: storyDate || null, // Capture Date
+                location: location || null, // Capture Location
                 storyteller_user_id: user.id,
                 global_prompt_id: safePromptId,
                 visibility: 'shared_with_circle',
@@ -231,15 +238,40 @@ function CreateStoryContent() {
                 )}
             </div>
 
-            {/* Title Input */}
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Story Title</label>
-                <Input
-                    placeholder={selectedPrompt ? `Answering: ${selectedPrompt.title}` : "Give your story a title..."}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="text-lg"
-                />
+            {/* Title & Metadata Input */}
+            <div className="space-y-4 bg-muted/20 p-4 rounded-lg border">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Story Title</label>
+                    <Input
+                        placeholder={selectedPrompt ? `Default: ${selectedPrompt.title}` : "Give your story a title..."}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="text-lg bg-background"
+                    />
+                    {selectedPrompt && !title && (
+                        <p className="text-xs text-muted-foreground p-1">Will default to: "{selectedPrompt.title}"</p>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Date (Optional)</label>
+                        <Input
+                            type="date"
+                            className="bg-background"
+                            onChange={(e) => setStoryDate(e.target.value)}
+                        />
+                        <p className="text-[10px] text-muted-foreground">When did this happen?</p>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Location (Optional)</label>
+                        <Input
+                            placeholder="e.g. Paris, Home"
+                            className="bg-background"
+                            onChange={(e) => setLocation(e.target.value)}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Unified Recorder Tabs */}
