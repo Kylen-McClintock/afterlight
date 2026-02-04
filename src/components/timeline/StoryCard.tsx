@@ -80,6 +80,18 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         }
 
+        if (mainAsset.asset_type === 'photo' && mainAsset.storage_path) {
+            return (
+                <div className="rounded-md overflow-hidden aspect-video bg-muted relative">
+                    <img
+                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${mainAsset.storage_path}`}
+                        alt="Story memory"
+                        className="w-full h-full object-cover"
+                    />
+                </div>
+            )
+        }
+
         return null
     }
 

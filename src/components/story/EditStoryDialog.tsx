@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/client"
-import { Loader2, Upload, Image as ImageIcon, X, FileText, Mic } from "lucide-react"
+import { Loader2, Upload, Image as ImageIcon, X, FileText, Mic, Users, UserPlus } from "lucide-react"
 import { StoryRecorder } from "./StoryRecorder"
 
 interface EditStoryDialogProps {
@@ -62,6 +62,32 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         acc[rel.category].push(rel)
         return acc
     }, {} as Record<string, any[]>)
+
+    // Recipients State
+    const [recipients, setRecipients] = useState<any[]>(story.recipients || [])
+    const [members, setMembers] = useState<any[]>([])
+
+    // Fetch Circle Members
+    useEffect(() => {
+        const fetchMembers = async () => {
+            if (!story.circle_id) return
+            const supabase = createClient()
+            // Fetch members and their profiles
+            const { data } = await supabase
+                .from('circle_memberships')
+                .select('user_id, profile:user_id(display_name, avatar_url)')
+                .eq('circle_id', story.circle_id)
+
+            if (data) {
+                setMembers(data.map((m: any) => ({
+                    user_id: m.user_id,
+                    display_name: m.profile?.display_name || "Unknown Member",
+                    avatar_url: m.profile?.avatar_url
+                })))
+            }
+        }
+        fetchMembers()
+    }, [story.circle_id])
 
     // Photo Upload State
     const [uploading, setUploading] = useState(false)
@@ -171,6 +197,48 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                     <div className="space-y-2">
                         <Label>Location (Optional)</Label>
                         <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Grandma's House, Paris" />
+                    </div>
+
+                    {/* Shared With */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label>Shared With</Label>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                                        <UserPlus className="h-3 w-3 mr-1" />
+                                        Add Person
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-sm">
+                                    <DialogHeader><DialogTitle>Share Story</DialogTitle></DialogHeader>
+                                    <RecipientSelector
+                                        storyId={story.id}
+                                        existingMembers={members}
+                                        onAdd={(newRecipient) => setRecipients([...recipients, newRecipient])}
+                                    />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {recipients.length === 0 && (
+                                <span className="text-xs text-muted-foreground italic pl-1">Visible to all circle members</span>
+                            )}
+                            {recipients.map((r, i) => (
+                                <div key={i} className="flex items-center gap-1.5 bg-secondary/50 rounded-full pl-1 pr-3 py-1 border">
+                                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                                        {r.profile?.avatar_url ? (
+                                            <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Users className="h-3 w-3 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                    <span className="text-xs font-medium">
+                                        {r.recipient_email || r.profile?.display_name || "Guest"}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Relationship/Author */}
@@ -428,5 +496,88 @@ function PlusIcon(props: any) {
             <path d="M5 12h14" />
             <path d="M12 5v14" />
         </svg>
+    )
+}
+
+function RecipientSelector({ storyId, existingMembers, onAdd }: { storyId: string, existingMembers: any[], onAdd: (r: any) => void }) {
+    const [email, setEmail] = useState("")
+    const [selectedMember, setSelectedMember] = useState("")
+    const [loading, setLoading] = useState(false)
+
+    const handleInvite = async () => {
+        if (!email && !selectedMember) return
+        setLoading(true)
+        const supabase = createClient()
+
+        const payload: any = { story_session_id: storyId }
+
+        if (selectedMember) {
+            payload.recipient_user_id = selectedMember
+        } else {
+            payload.recipient_email = email
+        }
+
+        const { data, error } = await supabase
+            .from('story_recipients')
+            .insert(payload)
+            .select()
+            .single()
+
+        if (error) {
+            alert("Error adding recipient")
+        } else {
+            // Optimistic update structure
+            const newRecip = {
+                ...data,
+                profile: existingMembers.find(m => m.user_id === selectedMember)
+            }
+            onAdd(newRecip)
+            setEmail("")
+            setSelectedMember("")
+        }
+        setLoading(false)
+    }
+
+    return (
+        <div className="space-y-4 py-2">
+            <div className="space-y-2">
+                <Label>Select Family Member</Label>
+                <Select value={selectedMember} onValueChange={(val) => { setSelectedMember(val); setEmail("") }}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Choose member..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {existingMembers.map(m => (
+                            <SelectItem key={m.user_id} value={m.user_id}>
+                                {m.display_name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or share via email</span>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Guest Email</Label>
+                <Input
+                    placeholder="guest@example.com"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setSelectedMember("") }}
+                />
+            </div>
+
+            <Button className="w-full" onClick={handleInvite} disabled={loading || (!email && !selectedMember)}>
+                {loading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                Add to Story
+            </Button>
+        </div>
     )
 }
