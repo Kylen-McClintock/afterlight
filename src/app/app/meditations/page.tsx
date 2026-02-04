@@ -132,6 +132,14 @@ export default function MeditationsPage() {
                     </div>
                 </TabsContent>
 
+                <TabsContent value="wisdom">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {meditations.filter(m => m.type === 'wisdom').map(med => (
+                            <MeditationCard key={med.id} meditation={med} interaction={interactions[med.id]} onUpdate={fetchData} />
+                        ))}
+                    </div>
+                </TabsContent>
+
                 <TabsContent value="history">
                     <div className="space-y-4">
                         <div className="bg-muted/10 p-4 rounded-lg border border-dashed">

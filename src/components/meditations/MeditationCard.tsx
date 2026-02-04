@@ -111,16 +111,6 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                         <p className="text-sm text-muted-foreground line-clamp-3">
                             {meditation.description}
                         </p>
-                        {meditation.metadata.evidence_url && (
-                            <a
-                                href={meditation.metadata.evidence_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-muted-foreground hover:underline flex items-center gap-1 mt-2"
-                            >
-                                <span className="opacity-70">Evidence:</span> {meditation.metadata.evidence_title || "View Research"}
-                            </a>
-                        )}
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
@@ -129,14 +119,14 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                 )}
 
                 {/* Rating Section */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 mt-auto pt-4 relative z-20" onClick={(e) => e.stopPropagation()}>
                     {[1, 2, 3, 4, 5].map((star) => (
                         <button
                             key={star}
                             disabled={loading}
                             onClick={() => handleRating(star)}
                             className="focus:outline-none transition-transform hover:scale-110"
-                            title="Rate usefulness: This helps surface the most impactful meditations for you."
+                            title="Rate usefulness"
                         >
                             <Star
                                 className={cn(
@@ -147,11 +137,60 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                         </button>
                     ))}
                     <span className="text-[10px] text-muted-foreground ml-2">
-                        {currentRating > 0 ? "Rated" : "Rate Usefulness"}
+                        {currentRating > 0 ? "Rated" : "Rate"}
                     </span>
                 </div>
             </CardContent>
-            <CardFooter className="pt-0 border-t p-3 flex justify-between bg-muted/5">
+
+            {/* Click to Expand Trigger */}
+            <Dialog>
+                <DialogTrigger asChild>
+                    <button className="absolute inset-0 w-full h-full cursor-pointer z-0 opacity-0" aria-label="Expand card">
+                        <span className="sr-only">Expand</span>
+                    </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-xl z-50">
+                    <DialogHeader>
+                        <DialogTitle>{meditation.title}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                        {meditation.type === 'wisdom' && meditation.metadata?.useful_thought && (
+                            <div className="bg-primary/5 p-4 rounded-md border border-primary/10">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Useful Thought</span>
+                                <p className="text-lg font-medium text-primary italic">"{meditation.metadata.useful_thought}"</p>
+                            </div>
+                        )}
+
+                        <div className="text-base leading-relaxed text-muted-foreground">
+                            {meditation.description}
+                        </div>
+
+                        {/* Evidence Link - Only in expanded view */}
+                        {meditation.type === 'wisdom' && meditation.metadata?.evidence_url && (
+                            <div className="pt-4 border-t">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Scientific Evidence</span>
+                                <a
+                                    href={meditation.metadata.evidence_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-primary hover:underline flex items-center gap-2"
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    {meditation.metadata.evidence_title || "View Research Source"}
+                                </a>
+                            </div>
+                        )}
+
+                        {meditation.content && meditation.type === 'text' && (
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                                {meditation.content}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <CardFooter className="pt-0 border-t p-3 flex justify-between bg-muted/5 z-20 relative">
                 <Dialog open={showNotes} onOpenChange={setShowNotes}>
                     <DialogTrigger asChild>
                         <Button variant="ghost" size="sm" className="text-xs h-7 px-2">
