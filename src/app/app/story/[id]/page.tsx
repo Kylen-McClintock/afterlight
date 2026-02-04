@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Calendar, User, Share2, MoreVertical, FileText } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { EditStoryDialog } from "@/components/story/EditStoryDialog"
 
 export default async function StoryDetailPage({ params }: { params: { id: string } }) {
     const supabase = await createClient()
@@ -51,9 +52,14 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                             <Share2 className="mr-2 h-4 w-4" />
                             Share
                         </Button>
-                        <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <EditStoryDialog
+                            story={story}
+                            onSuccess={async () => {
+                                'use server'
+                                // We can't really call server action here easily without plumbing.
+                                // simpler to refresh page.
+                            }}
+                        />
                     </div>
                 </div>
 
@@ -72,7 +78,11 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {date}
+                            {story.story_date
+                                ? (story.date_granularity === 'year'
+                                    ? new Date(story.story_date).getFullYear()
+                                    : new Date(story.story_date).toLocaleDateString())
+                                : date}
                         </div>
                         {story.storyteller && (
                             <div className="flex items-center gap-1">
