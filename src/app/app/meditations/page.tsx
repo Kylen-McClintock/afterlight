@@ -177,12 +177,40 @@ export default function MeditationsPage() {
 
 function QuoteCard({ quote }: { quote: any }) {
     return (
-        <Card className="bg-muted/20">
-            <CardContent className="pt-6">
-                <blockquote className="italic text-lg font-serif mb-4">"{quote.quote_text}"</blockquote>
-                <p className="text-sm text-muted-foreground">— {quote.author}</p>
-            </CardContent>
-        </Card>
+        <Dialog>
+            <DialogTrigger asChild>
+                <Card className="bg-muted/20 hover:border-primary/50 transition-all cursor-pointer group relative">
+                    <CardContent className="pt-6">
+                        <blockquote className="italic text-lg font-serif mb-4 line-clamp-4">"{quote.quote_text}"</blockquote>
+                        <p className="text-sm text-muted-foreground">— {quote.author}</p>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 backdrop-blur-[1px] rounded-lg">
+                            <span className="text-xs font-semibold bg-background border px-3 py-1 rounded-full shadow-sm">View Full Quote</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Daily Wisdom</DialogTitle>
+                </DialogHeader>
+                <div className="py-6">
+                    <blockquote className="italic text-xl font-serif mb-6 leading-relaxed border-l-4 pl-4 border-primary/20">
+                        "{quote.quote_text}"
+                    </blockquote>
+                    <p className="text-right text-muted-foreground font-medium">— {quote.author}</p>
+                </div>
+                {/* Placeholder for interactions - Quotes don't have backend support for ratings/notes yet, 
+                     but we can add a simple "Copy" or "Share" button, 
+                     or "Add to Plan" as a custom item later. 
+                     For now, I'll add a 'Copy to Clipboard' button as a useful action.
+                  */}
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(`"${quote.quote_text}" — ${quote.author}`)}>
+                        Copy Text
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     )
 }
 
