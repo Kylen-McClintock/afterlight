@@ -7,6 +7,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { EditStoryDialog } from "@/components/story/EditStoryDialog"
 import { StoryAssetViewer } from "@/components/story/StoryAssetViewer"
+import { InteractionWrapper } from "./InteractionWrapper"
 
 export default async function StoryDetailPage({ params }: { params: { id: string } }) {
     const supabase = await createClient()
@@ -135,6 +136,13 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                     </div>
                 )}
             </main>
+
+            {/* Interaction Footer */}
+            <div className="border-t pt-8 pb-20">
+                <InteractionWrapper storyId={story.id} />
+            </div>
         </div>
     )
 }
+
+

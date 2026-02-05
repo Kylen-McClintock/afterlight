@@ -24,6 +24,7 @@ export default async function TimelinePage(props: { searchParams: Promise<{ sear
         `)
         .order('story_date', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
+        .is('deleted_at', null)
 
     if (search) {
         query = query.contains('categories', [search])
