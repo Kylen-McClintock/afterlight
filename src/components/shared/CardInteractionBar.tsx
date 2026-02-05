@@ -3,33 +3,34 @@
 import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Star, MessageSquare, Plus, Loader2 } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Star, MessageSquare, Plus, Loader2, Trash2, AlertTriangle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { NoteRecorder } from "@/components/shared/NoteRecorder"
-import { MediaPlayer } from "@/components/timeline/MediaPlayer" // Reusing our secure player if needed, or simple audio tag
+import { MediaPlayer } from "@/components/timeline/MediaPlayer"
 
 interface CardInteractionBarProps {
     itemId: string
     itemType: 'meditation' | 'prompt'
     interaction?: any
     onUpdate?: () => void
+    onDelete?: () => Promise<void>
     variant?: 'condensed' | 'full'
 }
 
-export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, variant = 'condensed' }: CardInteractionBarProps) {
+export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, onDelete, variant = 'condensed' }: CardInteractionBarProps) {
     const [loading, setLoading] = useState(false)
     const [showNotes, setShowNotes] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [notes, setNotes] = useState(interaction?.notes || "")
     const [rating, setRating] = useState(interaction?.rating || 0)
 
     // Voice Note State
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
-    const [audioUrl, setAudioUrl] = useState<string | null>(interaction?.audio_path ? null : null) // We'll fetch signed URL if needed
+    const [audioUrl, setAudioUrl] = useState<string | null>(interaction?.audio_path ? null : null)
 
-    // Signed URL for playback logic (if existing)
     const [playableUrl, setPlayableUrl] = useState<string | null>(null)
 
     // Load signed URL if audio_path exists
@@ -86,8 +87,6 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, va
             finalAudioPath = fileName
         }
 
-        // 2. Transcribe (Optional - FUTURE TODO: Call API route here and append to notes)
-
         // 3. Save Interaction
         const { error } = await supabase
             .from(tableName)
@@ -108,11 +107,8 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, va
     }
 
     const handleDeleteAudio = async () => {
-        // Just clear from DB for now, strictly we should delete from storage too
-        // For MVP, just update record
         setPlayableUrl(null)
         setAudioBlob(null)
-        // We'll update DB on next save or do immediate? Let's do immediate for clarity.
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
@@ -150,50 +146,87 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, va
         setLoading(false)
     }
 
+    const handleDeleteConfirm = async () => {
+        if (onDelete) {
+            setLoading(true)
+            await onDelete()
+            setLoading(false)
+            setShowDeleteConfirm(false)
+        }
+    }
+
     // -- RENDER Condensed (Card Footer) --
     if (variant === 'condensed') {
         return (
             <div className="flex justify-between items-center w-full" onClick={e => e.stopPropagation()}>
-                {/* Note Dialog Trigger */}
-                <Dialog open={showNotes} onOpenChange={setShowNotes}>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className={cn("text-xs h-7 px-2", (notes || playableUrl) && "text-primary")}>
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            {notes || playableUrl ? "Edit Note" : "Add Note"}
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader><DialogTitle>Your Notes</DialogTitle></DialogHeader>
-                        <div className="space-y-4 py-2">
-                            <div className="space-y-2">
-                                <Label>Voice Note</Label>
-                                <NoteRecorder
-                                    onSave={(blob) => setAudioBlob(blob)}
-                                    initialAudioUrl={playableUrl}
-                                    onDelete={handleDeleteAudio}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Written Notes</Label>
-                                <Textarea
-                                    value={notes}
-                                    onChange={e => setNotes(e.target.value)}
-                                    placeholder="Takeaways, feelings, or automatic transcript..."
-                                    className="min-h-[120px]"
-                                />
-                            </div>
-                            <Button onClick={handleSaveNote} disabled={loading} className="w-full">
-                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Everything
+                <div className="flex gap-2">
+                    {/* Note Dialog Trigger */}
+                    <Dialog open={showNotes} onOpenChange={setShowNotes}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className={cn("text-xs h-7 px-2", (notes || playableUrl) && "text-primary")}>
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                                {notes || playableUrl ? "Edit Note" : "Add Note"}
                             </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader><DialogTitle>Your Notes</DialogTitle></DialogHeader>
+                            <div className="space-y-4 py-2">
+                                <div className="space-y-2">
+                                    <Label>Voice Note</Label>
+                                    <NoteRecorder
+                                        onSave={(blob) => setAudioBlob(blob)}
+                                        initialAudioUrl={playableUrl}
+                                        onDelete={handleDeleteAudio}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Written Notes</Label>
+                                    <Textarea
+                                        value={notes}
+                                        onChange={e => setNotes(e.target.value)}
+                                        placeholder="Takeaways, feelings, or automatic transcript..."
+                                        className="min-h-[120px]"
+                                    />
+                                </div>
+                                <Button onClick={handleSaveNote} disabled={loading} className="w-full">
+                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Everything
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
 
-                {/* Add to Plan */}
-                <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={addToPlan} disabled={loading}>
-                    <Plus className="h-3 w-3 mr-1" /> Plan
-                </Button>
+                    {/* Add to Plan */}
+                    <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={addToPlan} disabled={loading}>
+                        <Plus className="h-3 w-3 mr-1" /> Plan
+                    </Button>
+                </div>
+
+                {onDelete && (
+                    <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50">
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-red-600">
+                                    <AlertTriangle className="h-5 w-5" /> Delete Item?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Are you sure you want to delete this? This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                                <Button variant="destructive" onClick={handleDeleteConfirm} disabled={loading}>
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Forever"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
         )
     }
@@ -209,12 +242,38 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, va
                             key={star}
                             onClick={() => handleRate(star)}
                             className="focus:outline-none transition-transform hover:scale-110"
+                            title="Rate usefulness"
                         >
                             <Star className={cn("h-5 w-5", star <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
                         </button>
                     ))}
                     <span className="text-xs text-muted-foreground ml-2">{rating > 0 ? "Rated" : "Rate"}</span>
                 </div>
+                {onDelete && (
+                    <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-xs h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-red-600">
+                                    <AlertTriangle className="h-5 w-5" /> Delete Item?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Are you sure you want to delete this? This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                                <Button variant="destructive" onClick={handleDeleteConfirm} disabled={loading}>
+                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Forever"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
             {/* Actions Row */}
