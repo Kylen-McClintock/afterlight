@@ -261,7 +261,7 @@ ${userName}`
                                                     itemId={prompt.id}
                                                     itemType="prompt"
                                                     variant="condensed"
-                                                    onDelete={(userId && prompt.user_id === userId) ? () => handleDeletePrompt(prompt) : undefined}
+                                                    onDelete={() => handleDeletePrompt(prompt)}
                                                 />
                                             </div>
                                         </div>

@@ -139,7 +139,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             interaction={interaction}
                             onUpdate={onUpdate}
                             variant="full"
-                            onDelete={isOwner ? handleDelete : undefined}
+                            onDelete={handleDelete}
                         />
                     </div>
                 </DialogContent>
@@ -155,7 +155,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             interaction={interaction}
                             onUpdate={onUpdate}
                             variant="condensed"
-                            onDelete={isOwner ? handleDelete : undefined}
+                            onDelete={handleDelete}
                         />
                     </div>
 
