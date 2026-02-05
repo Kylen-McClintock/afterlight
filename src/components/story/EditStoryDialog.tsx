@@ -378,66 +378,60 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 </div>
                             ))}
 
-                            <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer bg-muted/5 transition-colors">
-                                {uploading ? (
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            <div className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 bg-muted/5 relative">
+                                {uploading && <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10"><Loader2 className="h-6 w-6 animate-spin" /></div>}
+
+                                {audioAssets.length > 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full w-full p-2 bg-muted/40 rounded-md gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="ghost" size="icon" onClick={() => audioRef.current?.paused ? audioRef.current?.play() : audioRef.current?.pause()} type="button">
+                                                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                            </Button>
+                                            <span className="text-xs text-muted-foreground font-medium">Audio</span>
+                                        </div>
+
+                                        {/* Explicit Transcribe Button - ALWAYS VISIBLE */}
+                                        <Button
+                                            variant={transcribing ? "outline" : "secondary"}
+                                            size="sm"
+                                            className="w-full text-xs h-7 gap-1"
+                                            onClick={handleTranscribe}
+                                            disabled={transcribing}
+                                            type="button"
+                                        >
+                                            {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                                            {transcribing ? "Transcribing..." : "Transcribe"}
+                                        </Button>
+
+                                        <audio
+                                            ref={audioRef}
+                                            src={audioAssets[0].url || ""}
+                                            onPlay={() => setIsPlaying(true)}
+                                            onPause={() => setIsPlaying(false)}
+                                            onEnded={() => setIsPlaying(false)}
+                                            className="hidden"
+                                        />
+                                    </div>
                                 ) : (
-                                    (audioAssets.length > 0) ? (
-                                        <div className="flex flex-col items-center justify-center h-full w-full p-2 bg-muted/40 rounded-md">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Button variant="ghost" size="icon" onClick={() => audioRef.current?.paused ? audioRef.current?.play() : audioRef.current?.pause()} type="button">
-                                                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                                                </Button>
-                                                <span className="text-xs text-muted-foreground font-medium">Recorded</span>
-                                            </div>
-
-                                            {/* Explicit Transcribe Button - ALWAYS VISIBLE */}
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                className="w-full text-xs h-7 gap-1"
-                                                onClick={handleTranscribe}
-                                                disabled={transcribing}
-                                                type="button"
-                                                title="Convert audio to text"
-                                            >
-                                                {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-                                                {transcribing ? "..." : "Transcribe"}
-                                            </Button>
-
-                                            <audio
-                                                ref={audioRef}
-                                                src={audioAssets[0].url || ""}
-                                                onPlay={() => setIsPlaying(true)}
-                                                onPause={() => setIsPlaying(false)}
-                                                onEnded={() => setIsPlaying(false)}
-                                                className="hidden"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-full w-full">
-                                            <PlusIcon className="h-6 w-6 text-muted-foreground mb-1" />
-                                            <span className="text-[10px] text-muted-foreground font-medium">Add Photo</span>
-                                            {/* Disabled Transcribe when empty so user sees it */}
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="w-full text-[10px] h-6 mt-1 opacity-50"
-                                                disabled
-                                                type="button"
-                                            >
-                                                <Wand2 className="h-3 w-3 mr-1" /> Transcribe
-                                            </Button>
-                                        </div>
-                                    )
+                                    <div className="flex flex-col items-center justify-center h-full w-full opacity-60">
+                                        <Wand2 className="h-5 w-5 text-muted-foreground mb-1" />
+                                        <span className="text-[10px] text-muted-foreground text-center px-1">Record audio to enable transcription</span>
+                                    </div>
                                 )}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handlePhotoUpload}
-                                    disabled={uploading}
-                                />
+
+                                {/* Hidden file input kept for photo upload if clicked on border? No, this div was a label. 
+                                    Separating audio handling from photo upload to avoid confusion. 
+                                    The original code mixed them. Let's keep the photo upload capability on specific click or add a dedicated button? 
+                                    Actually, the user wants TRANSCRIPTION key.
+                                    Let's just keep this box as the "Audio Status" box since Photos are rendered in the grid.
+                                */}
+                            </div>
+
+                            {/* Add Photo Button Separate */}
+                            <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer bg-muted/5 transition-colors">
+                                <PlusIcon className="h-6 w-6 text-muted-foreground mb-1" />
+                                <span className="text-[10px] text-muted-foreground font-medium">Add Photo</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
                             </label>
                         </div>
                     </div>
