@@ -1,4 +1,7 @@
-import { useState } from "react"
+"use client" // Add use client directive
+
+import { useState, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Play, Sparkles } from "lucide-react"
@@ -6,6 +9,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CardInteractionBar } from "@/components/shared/CardInteractionBar"
 
 export function MeditationCard({ meditation, interaction, onUpdate }: { meditation: any, interaction?: any, onUpdate?: () => void }) {
+    const [userId, setUserId] = useState<string | null>(null)
+
+    // Check for user ownership
+    useState(() => {
+        const checkUser = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) setUserId(user.id)
+        }
+        checkUser()
+    })
+
+    const handleDelete = async () => {
+        const supabase = createClient()
+        // Soft Delete
+        const { error } = await supabase
+            .from('library_meditations')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', meditation.id)
+
+        if (error) {
+            alert("Failed to delete: " + error.message)
+        } else {
+            if (onUpdate) onUpdate() // Refresh list
+        }
+    }
+
+    const isOwner = userId && meditation.user_id === userId
 
     return (
         <Card className="group hover:border-primary/50 transition-all flex flex-col h-full relative">
@@ -108,6 +139,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             interaction={interaction}
                             onUpdate={onUpdate}
                             variant="full"
+                            onDelete={isOwner ? handleDelete : undefined}
                         />
                     </div>
                 </DialogContent>
@@ -123,6 +155,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             interaction={interaction}
                             onUpdate={onUpdate}
                             variant="condensed"
+                            onDelete={isOwner ? handleDelete : undefined}
                         />
                     </div>
 

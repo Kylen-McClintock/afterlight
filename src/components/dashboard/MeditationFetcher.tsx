@@ -14,7 +14,8 @@ export function MeditationFetcher() {
             const supabase = createClient()
             const { data } = await supabase
                 .from('library_meditations')
-                .select('*')
+                .select('*, interactions:meditation_interactions(*)')
+                .is('deleted_at', null)
                 .limit(4)
                 .order('created_at', { ascending: false })
 
