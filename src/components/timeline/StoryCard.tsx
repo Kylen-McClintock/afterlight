@@ -112,28 +112,39 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const renderPreview = () => {
         if (!mainAsset) return null
 
-        if (mainAsset.asset_type === 'text') {
-            return (
-                <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3">
+        // Find associated transcript if any
+        const transcriptAsset = story.story_assets?.find(a => a.asset_type === 'text' && a.source_type === 'transcription')
+
+        let content = null
+
+        if (mainAsset.asset_type === 'text' && mainAsset.source_type !== 'transcription') {
+            content = (
+                <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3 font-serif">
                     "{mainAsset.text_content}"
                 </div>
             )
-        }
-
-        if ((mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video') && mainAsset.storage_path) {
-            return <MediaPlayer storagePath={mainAsset.storage_path} type={mainAsset.asset_type} duration={mainAsset.duration_seconds} />
-        }
-
-        if (mainAsset.external_url && (mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video')) {
-            return (
+        } else if ((mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video') && mainAsset.storage_path) {
+            content = (
+                <div className="space-y-3">
+                    <MediaPlayer storagePath={mainAsset.storage_path} type={mainAsset.asset_type} duration={mainAsset.duration_seconds} />
+                    {transcriptAsset && transcriptAsset.text_content && (
+                        <div className="px-3 py-2 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
+                            <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
+                            <p className="text-sm text-foreground/80 line-clamp-3 italic">
+                                "{transcriptAsset.text_content}"
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )
+        } else if (mainAsset.external_url && (mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video')) {
+            content = (
                 <a href={mainAsset.external_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm p-4 block">
                     View External Media
                 </a>
             )
-        }
-
-        if (mainAsset.asset_type === 'photo' && mainAsset.storage_path) {
-            return (
+        } else if (mainAsset.asset_type === 'photo' && mainAsset.storage_path) {
+            content = (
                 <div className="rounded-md overflow-hidden aspect-video bg-muted relative">
                     <StoryImage
                         storagePath={mainAsset.storage_path}
@@ -143,7 +154,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         }
 
-        return null
+        return content
     }
 
     return (

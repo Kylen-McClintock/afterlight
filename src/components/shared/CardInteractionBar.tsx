@@ -221,9 +221,13 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                         {/* Note Dialog Trigger */}
                         <Dialog open={showNotes} onOpenChange={setShowNotes}>
                             <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className={cn("text-xs h-7 px-2", (notes || playableUrl) && "text-primary")}>
+                                <Button
+                                    variant={notes || playableUrl ? "secondary" : "ghost"}
+                                    size="sm"
+                                    className={cn("text-xs h-7 px-2", (notes || playableUrl) && "text-primary font-semibold bg-primary/10 hover:bg-primary/20")}
+                                >
                                     <MessageSquare className="h-3 w-3 mr-1" />
-                                    {notes || playableUrl ? "Edit" : "Note"}
+                                    {notes || playableUrl ? "Notes Attached" : "Note"}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
