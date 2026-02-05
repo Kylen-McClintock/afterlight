@@ -402,20 +402,36 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
                                         {/* Transcript Display or Button */}
                                         {transcriptText ? (
-                                            <div className="w-full max-h-[60px] overflow-y-auto hidden-scrollbar bg-white/50 dark:bg-black/20 p-1.5 rounded text-[9px] text-muted-foreground leading-snug border">
-                                                {transcriptText}
+                                            <div className="relative group w-full">
+                                                <div className="w-full max-h-[60px] overflow-y-auto hidden-scrollbar bg-white/50 dark:bg-black/20 p-1.5 rounded text-[9px] text-muted-foreground leading-snug border">
+                                                    {transcriptText}
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute top-0 right-0 h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
+                                                    title="Re-transcribe"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        if (confirm("Regenerate transcript? This will overwrite existing notes.")) {
+                                                            handleTranscribe()
+                                                        }
+                                                    }}
+                                                >
+                                                    <Wand2 className="h-2.5 w-2.5 text-primary" />
+                                                </Button>
                                             </div>
                                         ) : (
                                             <Button
                                                 variant={transcribing ? "outline" : "secondary"}
                                                 size="sm"
-                                                className="w-full text-[10px] h-6 gap-1"
+                                                className="w-full text-[10px] h-6 gap-1 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
                                                 onClick={handleTranscribe}
                                                 disabled={transcribing}
                                                 type="button"
                                             >
                                                 {transcribing ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
-                                                {transcribing ? "Transcribing..." : "Transcribe"}
+                                                {transcribing ? "Transcribing..." : "Generate Transcript"}
                                             </Button>
                                         )}
 
