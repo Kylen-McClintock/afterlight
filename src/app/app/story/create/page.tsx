@@ -163,36 +163,44 @@ function CreateStoryContent() {
                 mimeType = mediaBlob.type
 
                 // --- AUTO-TRANSCRIBE ---
-                try {
-                    console.log("Attempting to transcribe main story audio...")
-                    const { data: signedData } = await supabase.storage
-                        .from('stories')
-                        .createSignedUrl(fileName, 300)
+                // Removed silent try/catch to expose errors to the user
+                console.log("Attempting to transcribe main story audio...")
+                // alert("DEBUG: Audio uploaded. Getting signed URL...") 
 
-                    if (signedData?.signedUrl) {
-                        const res = await fetch('/api/transcribe', {
-                            method: 'POST',
-                            body: JSON.stringify({ audioUrl: signedData.signedUrl }),
-                            headers: { 'Content-Type': 'application/json' }
-                        })
-                        if (res.ok) {
-                            const result = await res.json()
-                            if (result.text) {
-                                // Create separate transcript asset
-                                await supabase.from('story_assets').insert({
-                                    story_session_id: session.id,
-                                    asset_type: 'text',
-                                    source_type: 'transcription',
-                                    text_content: result.text
-                                })
-                                console.log("Main story transcript saved.")
-                            }
-                        } else {
-                            console.warn("Main story transcription failed:", await res.text())
-                        }
+                const { data: signedData, error: signError } = await supabase.storage
+                    .from('stories')
+                    .createSignedUrl(fileName, 300)
+
+                if (signError) throw new Error("Sign URL Error: " + signError.message)
+
+                if (signedData?.signedUrl) {
+                    // alert("DEBUG: Calling Transcription API...")
+                    const res = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: JSON.stringify({ audioUrl: signedData.signedUrl }),
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+
+                    if (!res.ok) {
+                        const errText = await res.text()
+                        throw new Error("Transcribe API Error: " + errText)
                     }
-                } catch (e: any) {
-                    console.error("Main story transcription error (non-blocking):", e)
+
+                    const result = await res.json()
+                    if (result.text) {
+                        // Create separate transcript asset
+                        const { error: transcriptError } = await supabase.from('story_assets').insert({
+                            story_session_id: session.id,
+                            asset_type: 'text',
+                            source_type: 'transcription',
+                            text_content: result.text
+                        })
+                        if (transcriptError) throw new Error("Transcript Save DB Error: " + transcriptError.message)
+                        console.log("Main story transcript saved.")
+                        // alert("DEBUG: Transcription Saved Successfully!")
+                    } else {
+                        throw new Error("API returned no text.")
+                    }
                 }
                 // -----------------------
 
@@ -222,6 +230,38 @@ function CreateStoryContent() {
                     if (file.type.startsWith('video')) assetType = 'video'
                     else if (file.type.startsWith('audio')) assetType = 'audio'
                     else if (file.type.startsWith('image')) assetType = 'photo'
+
+                    // --- AUTO-TRANSCRIBE (UPLOAD CASE) ---
+                    if (assetType === 'audio' || assetType === 'video') {
+                        console.log("Attempting to transcribe uploaded file...")
+                        const { data: signedData, error: signError } = await supabase.storage
+                            .from('stories')
+                            .createSignedUrl(fileName, 300)
+
+                        if (!signError && signedData?.signedUrl) {
+                            try {
+                                const res = await fetch('/api/transcribe', {
+                                    method: 'POST',
+                                    body: JSON.stringify({ audioUrl: signedData.signedUrl }),
+                                    headers: { 'Content-Type': 'application/json' }
+                                })
+                                if (res.ok) {
+                                    const result = await res.json()
+                                    if (result.text) {
+                                        await supabase.from('story_assets').insert({
+                                            story_session_id: session.id,
+                                            asset_type: 'text',
+                                            source_type: 'transcription',
+                                            text_content: result.text
+                                        })
+                                    }
+                                }
+                            } catch (e) {
+                                console.error("Upload transcription failed (ignoring)", e)
+                            }
+                        }
+                    }
+                    // -------------------------------------
                 }
             } else if (activeTab === 'text') {
                 sourceType = 'text'
@@ -233,7 +273,9 @@ function CreateStoryContent() {
                 .from('story_assets')
                 .insert({
                     story_session_id: session.id,
-                    asset_type: assetType,
+                    asset_type: assetType, // 'audio', 'video', 'external_media'
+                    // If we just transcribed, we still need to save the ORIGINAL audio asset here.
+                    // The transcription loop above creates a *second* asset.
                     source_type: sourceType,
                     storage_path: storagePath,
                     mime_type: mimeType,
