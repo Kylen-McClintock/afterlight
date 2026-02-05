@@ -110,6 +110,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         return fromMedia.length > 0 ? fromMedia : fromAssets
     })
 
+    const [transcriptText, setTranscriptText] = useState<string>(() => {
+        const txt = story.story_assets?.find((a: any) => a.asset_type === 'text' && a.source_type === 'transcription')
+        return txt ? txt.text_content : ""
+    })
+
     // Sync state if story updates 
     useEffect(() => {
         const fromAssets = story.story_assets?.filter((a: any) => a.asset_type === 'audio') || []
@@ -118,6 +123,11 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
         if (updated.length !== audioAssets.length) {
             setAudioAssets(updated)
+        }
+
+        const txt = story.story_assets?.find((a: any) => a.asset_type === 'text' && a.source_type === 'transcription')
+        if (txt && txt.text_content !== transcriptText) {
+            setTranscriptText(txt.text_content)
         }
     }, [story.story_assets, story.media])
 
@@ -382,26 +392,32 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 {uploading && <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10"><Loader2 className="h-6 w-6 animate-spin" /></div>}
 
                                 {audioAssets.length > 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full w-full p-2 bg-muted/40 rounded-md gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => audioRef.current?.paused ? audioRef.current?.play() : audioRef.current?.pause()} type="button">
-                                                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                    <div className="flex flex-col items-center justify-center h-full w-full p-2 bg-muted/40 rounded-md gap-2 overflow-hidden">
+                                        <div className="flex items-center gap-2 w-full justify-center">
+                                            <Button variant="ghost" size="icon" onClick={() => audioRef.current?.paused ? audioRef.current?.play() : audioRef.current?.pause()} type="button" className="h-6 w-6">
+                                                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                                             </Button>
-                                            <span className="text-xs text-muted-foreground font-medium">Audio</span>
+                                            <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[60px]">Audio</span>
                                         </div>
 
-                                        {/* Explicit Transcribe Button - ALWAYS VISIBLE */}
-                                        <Button
-                                            variant={transcribing ? "outline" : "secondary"}
-                                            size="sm"
-                                            className="w-full text-xs h-7 gap-1"
-                                            onClick={handleTranscribe}
-                                            disabled={transcribing}
-                                            type="button"
-                                        >
-                                            {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-                                            {transcribing ? "Transcribing..." : "Transcribe"}
-                                        </Button>
+                                        {/* Transcript Display or Button */}
+                                        {transcriptText ? (
+                                            <div className="w-full max-h-[60px] overflow-y-auto hidden-scrollbar bg-white/50 dark:bg-black/20 p-1.5 rounded text-[9px] text-muted-foreground leading-snug border">
+                                                {transcriptText}
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                variant={transcribing ? "outline" : "secondary"}
+                                                size="sm"
+                                                className="w-full text-[10px] h-6 gap-1"
+                                                onClick={handleTranscribe}
+                                                disabled={transcribing}
+                                                type="button"
+                                            >
+                                                {transcribing ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                                {transcribing ? "Transcribing..." : "Transcribe"}
+                                            </Button>
+                                        )}
 
                                         <audio
                                             ref={audioRef}
@@ -532,7 +548,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                         source_type: 'transcription',
                                                         text_content: data.text
                                                     })
-                                                    alert("Transcription complete! Added as a note.")
+                                                    setTranscriptText(data.text)
+                                                    alert("Transcription complete!")
                                                 }
                                             } catch (err) {
                                                 console.error("Auto-transcription failed", err)
