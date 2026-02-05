@@ -15,7 +15,9 @@ export async function POST(request: Request) {
 
         if (!process.env.ASSEMBLYAI_API_KEY) {
             console.error("AssemblyAI API Key is missing");
-            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+            return NextResponse.json({
+                error: `Server configuration error. Key: ${process.env.ASSEMBLYAI_API_KEY ? 'Present' : 'Missing'}. CWD: ${process.cwd()}. EnvFiles: ${process.env.NODE_ENV}`
+            }, { status: 500 });
         }
 
         console.log("Transcribing audio from:", audioUrl);
