@@ -84,6 +84,9 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
         fetchInteraction()
     }, [story.id])
 
+    // Debugging: Inspect assets to ensure we receiving the transcript
+    // console.log("Story Assets:", story.title, story.story_assets)
+
     const handleDelete = async () => {
         const supabase = createClient()
         // Soft Delete

@@ -74,8 +74,17 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                 const devices = await navigator.mediaDevices.enumerateDevices()
                 const inputs = devices.filter(d => d.kind === 'audioinput')
                 setAudioDevices(inputs)
+
                 if (inputs.length > 0 && !selectedDeviceId) {
-                    setSelectedDeviceId(inputs[0].deviceId)
+                    // Prioritize 'default' device, common on Mac/Windows to match system settings
+                    const defaultDevice = inputs.find(d => d.deviceId === 'default')
+                    if (defaultDevice) {
+                        setSelectedDeviceId(defaultDevice.deviceId)
+                    } else {
+                        // If no default (some browsers hide it), try to avoid "Virtual" devices if possible, or just take first
+                        const preferred = inputs.find(d => !d.label.toLowerCase().includes('virtual') && !d.label.toLowerCase().includes('teams'))
+                        setSelectedDeviceId(preferred ? preferred.deviceId : inputs[0].deviceId)
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching devices:", err)
@@ -307,10 +316,10 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
 
                 {/* Mic Selector */}
                 {!isRecording && !mediaBlob && audioDevices.length > 0 && (
-                    <div className="w-full max-w-xs">
+                    <div className="w-full max-w-xs mb-8 relative z-20">
                         <Label className="text-xs text-muted-foreground mb-1 block">Microphone Input</Label>
                         <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger className="h-8 text-xs bg-background">
                                 <SelectValue placeholder="Select Mic" />
                             </SelectTrigger>
                             <SelectContent>
