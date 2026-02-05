@@ -88,6 +88,9 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
 
             // Web Audio API Analyzer (Visual Proof of Sound)
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume()
+            }
             audioContextRef.current = audioContext
             const source = audioContext.createMediaStreamSource(stream)
             const analyzer = audioContext.createAnalyser()
