@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, User, Share2, MoreVertical, FileText } from "lucid
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { EditStoryDialog } from "@/components/story/EditStoryDialog"
+import { StoryAssetViewer } from "@/components/story/StoryAssetViewer"
 
 export default async function StoryDetailPage({ params }: { params: { id: string } }) {
     const supabase = await createClient()
@@ -96,98 +97,37 @@ export default async function StoryDetailPage({ params }: { params: { id: string
 
             {/* Main Content (Assets) */}
             <main className="space-y-8">
-                {story.story_assets?.map((asset: any) => (
-                    <div key={asset.id} className="space-y-4">
-                        {asset.asset_type === 'video' && (
-                            <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
-                                {/* Use Storage URL if available, or external */}
-                                {asset.storage_path ? (
-                                    <video
-                                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${asset.storage_path}`}
-                                        controls
-                                        className="w-full h-full"
-                                    />
-                                ) : asset.external_url ? (
-                                    // Embed logic would go here. For now, simple video tag or iframe handling
-                                    <iframe src={asset.external_url} className="w-full h-full" allowFullScreen />
-                                ) : (
-                                    <div className="flex items-center justify-center h-full text-white">
-                                        Video source missing
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                {story.story_assets?.map((asset: any) => {
+                    // Skip separate transcript assets as they are linked to audio
+                    if (asset.asset_type === 'text' && asset.source_type === 'transcription') return null
 
-                        {asset.asset_type === 'audio' && (
-                            <Card>
-                                <CardContent className="p-6 flex flex-col gap-4">
-                                    <h3 className="font-semibold">Audio Recording</h3>
-                                    <audio
-                                        controls
-                                        className="w-full"
-                                        src={asset.storage_path ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${asset.storage_path}` : asset.external_url}
-                                    />
+                    // Find related transcript if this is audio
+                    let relatedTranscript = undefined
+                    if (asset.asset_type === 'audio') {
+                        relatedTranscript = story.story_assets.find((a: any) =>
+                            a.asset_type === 'text' &&
+                            a.source_type === 'transcription'
+                        )?.text_content
+                    }
 
-                                    {/* Transcription Section */}
-                                    <div className="mt-4 pt-4 border-t">
-                                        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                                            <FileText className="h-4 w-4" /> Transcript
-                                        </h4>
-                                        {(() => {
-                                            // 1. Check if audio asset itself has text (legacy or direct attachment)
-                                            if (asset.text_content) {
-                                                return (
-                                                    <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
-                                                        {asset.text_content}
-                                                    </div>
-                                                )
-                                            }
-
-                                            // 2. Check for a separate 'text' asset that is a transcription
-                                            // We assume 1 transcription per story for now, or match loosely.
-                                            const transcriptAsset = story.story_assets.find((a: any) =>
-                                                a.asset_type === 'text' &&
-                                                a.source_type === 'transcription'
-                                            )
-
-                                            if (transcriptAsset) {
-                                                return (
-                                                    <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
-                                                        {transcriptAsset.text_content}
-                                                    </div>
-                                                )
-                                            }
-
-                                            // 3. Fallback
-                                            return (
-                                                <div className="p-4 bg-muted/10 rounded-md text-sm text-muted-foreground italic flex justify-between items-center">
-                                                    <span>No transcript found. (Edit story to generate one)</span>
-                                                </div>
-                                            )
-                                        })()}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* Hide standalone transcription assets to avoid duplication if we showed them above */}
-                        {asset.asset_type === 'text' && asset.source_type !== 'transcription' && (
-                            <div className="prose dark:prose-invert max-w-none p-6 bg-card rounded-lg border shadow-sm font-serif text-lg leading-relaxed">
+                    if (asset.asset_type === 'text') {
+                        return (
+                            <div key={asset.id} className="prose dark:prose-invert max-w-none p-6 bg-card rounded-lg border shadow-sm font-serif text-lg leading-relaxed">
                                 {asset.text_content}
                             </div>
-                        )}
+                        )
+                    }
 
-                        {asset.asset_type === 'photo' && (
-                            <div className="rounded-lg overflow-hidden shadow-md">
-                                <img
-                                    src={asset.storage_path ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/stories/${asset.storage_path}` : asset.external_url}
-                                    alt="Story attachment"
-                                    className="w-full h-auto"
-                                />
-                            </div>
-                        )}
-                    </div>
-                ))}
+                    return (
+                        <div key={asset.id} className="space-y-4">
+                            <StoryAssetViewer
+                                asset={asset}
+                                storyId={story.id}
+                                relatedTranscript={relatedTranscript}
+                            />
+                        </div>
+                    )
+                })}
 
                 {(!story.story_assets || story.story_assets.length === 0) && (
                     <div className="p-12 text-center text-muted-foreground bg-muted/20 rounded-lg">
