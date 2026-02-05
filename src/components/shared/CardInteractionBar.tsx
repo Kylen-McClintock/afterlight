@@ -232,7 +232,10 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                                     <div className="space-y-2">
                                         <Label>Voice Note</Label>
                                         <NoteRecorder
-                                            onSave={(blob) => setAudioBlob(blob)}
+                                            onSave={(blob) => {
+                                                console.log("NoteRecorder saved blob:", blob.size, blob.type);
+                                                setAudioBlob(blob);
+                                            }}
                                             initialAudioUrl={playableUrl}
                                             onDelete={handleDeleteAudio}
                                         />
@@ -249,6 +252,18 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                                     <Button onClick={handleSaveNote} disabled={loading} className="w-full">
                                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         Save Everything
+                                    </Button>
+
+                                    {/* Debug Button */}
+                                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={async () => {
+                                        try {
+                                            alert("Testing API Check...")
+                                            const res = await fetch('/api/transcribe', { method: 'POST', body: JSON.stringify({}) })
+                                            const txt = await res.text()
+                                            alert("API Response to empty: " + res.status + " " + txt)
+                                        } catch (e: any) { alert("API Connect Error: " + e.message) }
+                                    }}>
+                                        Test API Connection
                                     </Button>
                                 </div>
                             </DialogContent>
