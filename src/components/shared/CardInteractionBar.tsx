@@ -253,18 +253,6 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         Save Everything
                                     </Button>
-
-                                    {/* Debug Button */}
-                                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={async () => {
-                                        try {
-                                            alert("Testing API Check...")
-                                            const res = await fetch('/api/transcribe', { method: 'POST', body: JSON.stringify({}) })
-                                            const txt = await res.text()
-                                            alert("API Response to empty: " + res.status + " " + txt)
-                                        } catch (e: any) { alert("API Connect Error: " + e.message) }
-                                    }}>
-                                        Test API Connection
-                                    </Button>
                                 </div>
                             </DialogContent>
                         </Dialog>

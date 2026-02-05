@@ -161,6 +161,41 @@ function CreateStoryContent() {
 
                 storagePath = fileName
                 mimeType = mediaBlob.type
+
+                // --- AUTO-TRANSCRIBE ---
+                try {
+                    console.log("Attempting to transcribe main story audio...")
+                    const { data: signedData } = await supabase.storage
+                        .from('stories')
+                        .createSignedUrl(fileName, 300)
+
+                    if (signedData?.signedUrl) {
+                        const res = await fetch('/api/transcribe', {
+                            method: 'POST',
+                            body: JSON.stringify({ audioUrl: signedData.signedUrl }),
+                            headers: { 'Content-Type': 'application/json' }
+                        })
+                        if (res.ok) {
+                            const result = await res.json()
+                            if (result.text) {
+                                // Create separate transcript asset
+                                await supabase.from('story_assets').insert({
+                                    story_session_id: session.id,
+                                    asset_type: 'text',
+                                    source_type: 'transcription',
+                                    text_content: result.text
+                                })
+                                console.log("Main story transcript saved.")
+                            }
+                        } else {
+                            console.warn("Main story transcription failed:", await res.text())
+                        }
+                    }
+                } catch (e: any) {
+                    console.error("Main story transcription error (non-blocking):", e)
+                }
+                // -----------------------
+
             } else if (activeTab === 'upload') {
                 if (textContent && textContent.includes('http')) {
                     // Google Photos Link / External Link
