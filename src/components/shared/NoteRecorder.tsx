@@ -33,7 +33,21 @@ export function NoteRecorder({ onSave, initialAudioUrl, onDelete }: NoteRecorder
         const getDevices = async () => {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices()
-                const inputs = devices.filter(d => d.kind === 'audioinput')
+                const inputs = devices
+                    .filter(d => d.kind === 'audioinput')
+                    .filter(d => {
+                        const label = d.label.toLowerCase()
+                        return !label.includes('virtual') && !label.includes('teams') && !label.includes('stereo mix')
+                    })
+                    .sort((a, b) => {
+                        const aLabel = a.label.toLowerCase()
+                        const bLabel = b.label.toLowerCase()
+                        // Prioritize Default and Built-in
+                        if (aLabel.includes('default') || aLabel.includes('built-in')) return -1
+                        if (bLabel.includes('default') || bLabel.includes('built-in')) return 1
+                        return 0
+                    })
+
                 setAudioDevices(inputs)
                 if (inputs.length > 0 && !selectedDeviceId) {
                     setSelectedDeviceId(inputs[0].deviceId)
