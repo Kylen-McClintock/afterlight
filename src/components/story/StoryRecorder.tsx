@@ -64,11 +64,33 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
     const audioContextRef = useRef<AudioContext | null>(null)
     const [volumeLevel, setVolumeLevel] = useState(0)
 
+    const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>("")
+
+    // Fetch Audio Devices
+    useEffect(() => {
+        const getDevices = async () => {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices()
+                const inputs = devices.filter(d => d.kind === 'audioinput')
+                setAudioDevices(inputs)
+                if (inputs.length > 0 && !selectedDeviceId) {
+                    setSelectedDeviceId(inputs[0].deviceId)
+                }
+            } catch (err) {
+                console.error("Error fetching devices:", err)
+            }
+        }
+        getDevices()
+        navigator.mediaDevices.addEventListener('devicechange', getDevices)
+        return () => navigator.mediaDevices.removeEventListener('devicechange', getDevices)
+    }, [])
+
     const startRecording = async () => {
         try {
             console.log("Requesting user media...")
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
+                audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true,
                 video: mode === "video"
             })
 
@@ -280,6 +302,25 @@ export function StoryRecorder({ mode, onSave }: StoryRecorderProps) {
                                 </div>
                             )
                         )}
+                    </div>
+                )}
+
+                {/* Mic Selector */}
+                {!isRecording && !mediaBlob && audioDevices.length > 0 && (
+                    <div className="w-full max-w-xs">
+                        <Label className="text-xs text-muted-foreground mb-1 block">Microphone Input</Label>
+                        <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
+                            <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select Mic" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {audioDevices.map(device => (
+                                    <SelectItem key={device.deviceId} value={device.deviceId}>
+                                        {device.label || `Microphone ${device.deviceId.slice(0, 5)}`}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
 
