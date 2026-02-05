@@ -71,6 +71,7 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
         if (!user) return
 
         let finalAudioPath = interaction?.audio_path || null
+        let transcriptText = ""
 
         // 1. Upload Audio if exists
         if (audioBlob) {
@@ -85,15 +86,49 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                 return
             }
             finalAudioPath = fileName
+
+            // 2. Auto-Transcribe
+            try {
+                // We need a signed URL for AssemblyAI to access it (private bucket)
+                const { data: signedData } = await supabase.storage
+                    .from('interactions_audio')
+                    .createSignedUrl(fileName, 300) // 5 mins access
+
+                if (signedData?.signedUrl) {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: JSON.stringify({ audioUrl: signedData.signedUrl }),
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+
+                    if (response.ok) {
+                        const result = await response.json()
+                        if (result.text) {
+                            transcriptText = result.text
+                        }
+                    } else {
+                        console.error("Transcription failed", await response.text())
+                    }
+                }
+            } catch (err) {
+                console.error("Transcription error", err)
+            }
         }
 
-        // 3. Save Interaction
+        // 3. Save Interaction (Append transcript if exists)
+        // If user already typed notes, append. If empty, just set.
+        let finalNotes = notes
+        if (transcriptText) {
+            finalNotes = finalNotes ? `${finalNotes}\n\n[Transcript]: ${transcriptText}` : `[Transcript]: ${transcriptText}`
+            setNotes(finalNotes) // Update UI
+        }
+
         const { error } = await supabase
             .from(tableName)
             .upsert({
                 user_id: user.id,
                 [idColumn]: itemId,
-                notes: notes,
+                notes: finalNotes,
                 audio_path: finalAudioPath,
                 updated_at: new Date().toISOString()
             }, { onConflict: `user_id,${idColumn}` })

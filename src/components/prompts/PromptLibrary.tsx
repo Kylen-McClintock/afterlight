@@ -33,91 +33,7 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
     const [inviteEmails, setInviteEmails] = useState("")
     const [selectedInvitePrompt, setSelectedInvitePrompt] = useState<any>(null)
 
-    const fetchPrompts = async () => {
-        setLoading(true)
-        const supabase = createClient()
-
-        let combined: any[] = []
-
-        if (activeCollectionId) {
-            // Fetch collection items
-            const { data: items } = await supabase
-                .from('custom_collection_items')
-                .select('*, prompt:prompt_library_global(*)') // Expand linked prompt
-                .eq('collection_id', activeCollectionId)
-
-            if (items) {
-                combined = items.map(item => ({
-                    ...item.prompt,
-                    // valid prompt data or fallback title if custom item w/o link
-                    title: item.prompt?.title || item.title,
-                    prompt_text: item.prompt?.prompt_text || item.title
-                })).filter(p => p.title) // filter out junk
-            }
-        } else {
-            // Standard Fetch (Global + Requests)
-            // ... existing logic ...
-            let globalQuery = supabase
-                .from('prompt_library_global')
-                .select('*')
-                .limit(100)
-
-            if (category && category !== "All") {
-                globalQuery = globalQuery.contains('tags', [category])
-            }
-
-            const { data: globalData, error: globalError } = await globalQuery
-
-            let userPrompts: any[] = []
-            if (!category || category === 'All') {
-                const { data: userData } = await supabase
-                    .from('prompt_requests')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-
-                if (userData) {
-                    userPrompts = userData.map(p => ({
-                        id: p.id,
-                        title: p.prompt_text,
-                        prompt_text: p.prompt_text,
-                        tags: ['Custom'],
-                        is_custom: true
-                    }))
-                }
-            }
-            combined = [...(userPrompts || []), ...(globalData || [])]
-        }
-
-        setPrompts(combined)
-        setLoading(false)
-    }
-
-    useEffect(() => {
-        fetchPrompts()
-    }, [category, activeCollectionId])
-
-    const handleSelectCollection = (id: string) => {
-        setActiveCollectionId(id)
-        setViewMode('browse') // Switch back to browse to show items? Or stay in collections view?
-        // Let's keep it simple: "Browse" shows standard feed. "Collections" shows list of collections.
-        // If you click a collection, we show those prompts.
-        // It might be cleaner to just have a "Collection" filter in the Browse view, but let's try a dedicated flow.
-    }
-
-    // Reset collection if category changes or user clicks "All"
-    useEffect(() => {
-        if (category) setActiveCollectionId(null)
-    }, [category])
-
-
-    const handleShareClick = (prompt: any, e: React.MouseEvent) => {
-        e.stopPropagation()
-        setSelectedInvitePrompt(prompt)
-        setInviteOpen(true)
-    }
-
     const [userName, setUserName] = useState("A friend")
-
     const [userId, setUserId] = useState<string | null>(null)
 
     useEffect(() => {
@@ -134,19 +50,102 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
         fetchUser()
     }, [])
 
+    const fetchPrompts = async () => {
+        setLoading(true)
+        const supabase = createClient()
+
+        let combined: any[] = []
+
+        if (activeCollectionId) {
+            // Fetch collection items
+            const { data: items } = await supabase
+                .from('custom_collection_items')
+                .select('*, prompt:prompt_library_global(*)') // Expand linked prompt
+                // Logic: Custom items don't usually map to global, but if they do, we expand.
+                .eq('collection_id', activeCollectionId)
+
+            if (items) {
+                combined = items.map(item => ({
+                    ...item.prompt,
+                    // valid prompt data or fallback title if custom item w/o link
+                    title: item.prompt?.title || item.title,
+                    prompt_text: item.prompt?.prompt_text || item.title
+                })).filter(p => p.title) // filter out junk
+            }
+        } else {
+            // Standard Fetch (Global + Requests)
+            // Filter deleted_at IS NULL
+            let globalQuery = supabase
+                .from('prompt_library_global')
+                .select('*')
+                .is('deleted_at', null)
+                .limit(100)
+
+            if (category && category !== "All") {
+                globalQuery = globalQuery.contains('tags', [category])
+            }
+
+            const { data: globalData, error: globalError } = await globalQuery
+
+            let userPrompts: any[] = []
+            if (!category || category === 'All') {
+                const { data: userData } = await supabase
+                    .from('prompt_requests')
+                    .select('*')
+                    .is('deleted_at', null)
+                    .order('created_at', { ascending: false })
+
+                if (userData) {
+                    userPrompts = userData.map(p => ({
+                        id: p.id,
+                        title: p.prompt_text,
+                        prompt_text: p.prompt_text,
+                        tags: ['Custom'],
+                        is_custom: true,
+                        user_id: userId // Ensure ownership logic works if IDs match
+                    }))
+                }
+            }
+            combined = [...(userPrompts || []), ...(globalData || [])]
+        }
+
+        setPrompts(combined)
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        fetchPrompts()
+    }, [category, activeCollectionId])
+
+    const handleSelectCollection = (id: string) => {
+        setActiveCollectionId(id)
+        setViewMode('browse')
+    }
+
+    // Reset collection if category changes or user clicks "All"
+    useEffect(() => {
+        if (category) setActiveCollectionId(null)
+    }, [category])
+
+
+    const handleShareClick = (prompt: any, e: React.MouseEvent) => {
+        e.stopPropagation()
+        setSelectedInvitePrompt(prompt)
+        setInviteOpen(true)
+    }
+
     const handleDeletePrompt = async (prompt: any) => {
         const supabase = createClient()
-        // If it's a request (has no user_id property usually, but we mapped it).
-        // Best guess: If it's in global table, it has an ID. If in requests table, it has an ID.
-        // We can try deleting from 'prompt_library_global' first.
+        // Soft Delete
+        const updates = { deleted_at: new Date().toISOString() }
         let error = null
 
         // Try global first
-        const { error: globalError, count } = await supabase.from('prompt_library_global').delete().eq('id', prompt.id)
+        const { error: globalError, count } = await supabase.from('prompt_library_global').update(updates).eq('id', prompt.id).select()
 
-        if (globalError || count === 0) {
+        if (globalError || !count) {
             // Try requests
-            const { error: reqError } = await supabase.from('prompt_requests').delete().eq('id', prompt.id)
+            const { error: reqError } = await supabase.from('prompt_requests').update(updates).eq('id', prompt.id)
             if (reqError) error = reqError
         } else if (globalError) {
             error = globalError
@@ -161,9 +160,6 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
 
     const handleSendInvite = () => {
         if (!inviteEmails) return
-
-        // Personal message
-        // Using window.open ensures it's treated as navigation in some contexts, but href is standard for mailto
 
         const subject = encodeURIComponent(`${userName} would love to hear your story: ${selectedInvitePrompt?.title}`)
         const url = `${window.location.origin}/app/story/create?promptId=${selectedInvitePrompt?.id}`
@@ -261,7 +257,6 @@ ${userName}`
                                                     Share
                                                 </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => onSelect(prompt)}>Select</Button>
-                                                <Button variant="ghost" size="sm" onClick={() => onSelect(prompt)}>Select</Button>
                                                 <CardInteractionBar
                                                     itemId={prompt.id}
                                                     itemType="prompt"
@@ -325,5 +320,3 @@ ${userName}`
         </div>
     )
 }
-
-
