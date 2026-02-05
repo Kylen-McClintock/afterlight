@@ -78,17 +78,21 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
 
         // 1. Upload Audio if exists
         if (audioBlob) {
+            console.log("Starting upload...")
             const fileName = `${user.id}/${Date.now()}.webm`
             const { error: uploadError } = await supabase.storage
                 .from('interactions_audio')
-                .upload(fileName, audioBlob)
+                .upload(fileName, audioBlob, {
+                    contentType: audioBlob.type || 'audio/webm'
+                })
 
             if (uploadError) {
-                alert("Failed to upload audio: " + uploadError.message)
+                alert("DEBUG: Failed to upload audio: " + uploadError.message)
                 setLoading(false)
                 return
             }
             finalAudioPath = fileName
+            console.log("Upload success:", fileName)
 
             // 2. Auto-Transcribe
             try {
@@ -98,6 +102,7 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                     .createSignedUrl(fileName, 300) // 5 mins access
 
                 if (signedData?.signedUrl) {
+                    console.log("Transcribing...")
                     const response = await fetch('/api/transcribe', {
                         method: 'POST',
                         body: JSON.stringify({ audioUrl: signedData.signedUrl }),
@@ -108,13 +113,17 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                         const result = await response.json()
                         if (result.text) {
                             transcriptText = result.text
+                            console.log("Transcript received")
                         }
                     } else {
-                        console.error("Transcription failed", await response.text())
+                        const errTxt = await response.text()
+                        console.error("Transcription failed", errTxt)
+                        alert("DEBUG: Transcription API failed: " + errTxt)
                     }
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Transcription error", err)
+                alert("DEBUG: Transcription Logic Error: " + err.message)
             }
         }
 
@@ -136,10 +145,13 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                 updated_at: new Date().toISOString()
             }, { onConflict: `user_id,${idColumn}` })
 
-        if (!error) {
+        if (error) {
+            alert("DEBUG: Database Save Failed: " + error.message + " | Table: " + tableName)
+        } else {
             setShowNotes(false)
             setAudioBlob(null) // Reset local blob, now saved
             if (onUpdate) onUpdate()
+            // Alert success momentarily if needed, but UI close usually suffice.
         }
         setLoading(false)
     }
