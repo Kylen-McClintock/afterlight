@@ -1,0 +1,260 @@
+"use client"
+
+import { useState } from "react"
+import { createClient } from "@/utils/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Star, MessageSquare, Plus, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
+import { NoteRecorder } from "@/components/shared/NoteRecorder"
+import { MediaPlayer } from "@/components/timeline/MediaPlayer" // Reusing our secure player if needed, or simple audio tag
+
+interface CardInteractionBarProps {
+    itemId: string
+    itemType: 'meditation' | 'prompt'
+    interaction?: any
+    onUpdate?: () => void
+    variant?: 'condensed' | 'full'
+}
+
+export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, variant = 'condensed' }: CardInteractionBarProps) {
+    const [loading, setLoading] = useState(false)
+    const [showNotes, setShowNotes] = useState(false)
+    const [notes, setNotes] = useState(interaction?.notes || "")
+    const [rating, setRating] = useState(interaction?.rating || 0)
+
+    // Voice Note State
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+    const [audioUrl, setAudioUrl] = useState<string | null>(interaction?.audio_path ? null : null) // We'll fetch signed URL if needed
+
+    // Signed URL for playback logic (if existing)
+    const [playableUrl, setPlayableUrl] = useState<string | null>(null)
+
+    // Load signed URL if audio_path exists
+    useState(() => {
+        if (interaction?.audio_path) {
+            const fetchUrl = async () => {
+                const supabase = createClient()
+                const { data } = await supabase.storage.from('interactions_audio').createSignedUrl(interaction.audio_path, 3600)
+                if (data) setPlayableUrl(data.signedUrl)
+            }
+            fetchUrl()
+        }
+    })
+
+    const tableName = itemType === 'meditation' ? 'meditation_interactions' : 'prompt_interactions'
+    const idColumn = itemType === 'meditation' ? 'meditation_id' : 'prompt_id'
+
+    const handleRate = async (newRating: number) => {
+        setRating(newRating) // Optimistic
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        await supabase.from(tableName).upsert({
+            user_id: user.id,
+            [idColumn]: itemId,
+            rating: newRating,
+            updated_at: new Date().toISOString()
+        }, { onConflict: `user_id,${idColumn}` })
+
+        if (onUpdate) onUpdate()
+    }
+
+    const handleSaveNote = async () => {
+        setLoading(true)
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        let finalAudioPath = interaction?.audio_path || null
+
+        // 1. Upload Audio if exists
+        if (audioBlob) {
+            const fileName = `${user.id}/${Date.now()}.webm`
+            const { error: uploadError } = await supabase.storage
+                .from('interactions_audio')
+                .upload(fileName, audioBlob)
+
+            if (uploadError) {
+                alert("Failed to upload audio: " + uploadError.message)
+                setLoading(false)
+                return
+            }
+            finalAudioPath = fileName
+        }
+
+        // 2. Transcribe (Optional - FUTURE TODO: Call API route here and append to notes)
+
+        // 3. Save Interaction
+        const { error } = await supabase
+            .from(tableName)
+            .upsert({
+                user_id: user.id,
+                [idColumn]: itemId,
+                notes: notes,
+                audio_path: finalAudioPath,
+                updated_at: new Date().toISOString()
+            }, { onConflict: `user_id,${idColumn}` })
+
+        if (!error) {
+            setShowNotes(false)
+            setAudioBlob(null) // Reset local blob, now saved
+            if (onUpdate) onUpdate()
+        }
+        setLoading(false)
+    }
+
+    const handleDeleteAudio = async () => {
+        // Just clear from DB for now, strictly we should delete from storage too
+        // For MVP, just update record
+        setPlayableUrl(null)
+        setAudioBlob(null)
+        // We'll update DB on next save or do immediate? Let's do immediate for clarity.
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        if (interaction?.audio_path) {
+            await supabase.from(tableName).update({ audio_path: null }).match({ user_id: user.id, [idColumn]: itemId })
+            if (onUpdate) onUpdate()
+        }
+    }
+
+    const addToPlan = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setLoading(true)
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        const { data: plan } = await supabase
+            .from('weekly_plans')
+            .select('id')
+            .eq('user_id', user?.id)
+            .eq('is_active', true)
+            .single()
+
+        if (plan) {
+            await supabase.from('weekly_plan_items').insert({
+                plan_id: plan.id,
+                item_type: itemType, // 'meditation' or 'prompt' match DB constraints
+                [idColumn]: itemId,
+                status: 'pending'
+            })
+            alert("Added to Weekly Plan")
+        } else {
+            alert("No active weekly plan found.")
+        }
+        setLoading(false)
+    }
+
+    // -- RENDER Condensed (Card Footer) --
+    if (variant === 'condensed') {
+        return (
+            <div className="flex justify-between items-center w-full" onClick={e => e.stopPropagation()}>
+                {/* Note Dialog Trigger */}
+                <Dialog open={showNotes} onOpenChange={setShowNotes}>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className={cn("text-xs h-7 px-2", (notes || playableUrl) && "text-primary")}>
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            {notes || playableUrl ? "Edit Note" : "Add Note"}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>Your Notes</DialogTitle></DialogHeader>
+                        <div className="space-y-4 py-2">
+                            <div className="space-y-2">
+                                <Label>Voice Note</Label>
+                                <NoteRecorder
+                                    onSave={(blob) => setAudioBlob(blob)}
+                                    initialAudioUrl={playableUrl}
+                                    onDelete={handleDeleteAudio}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Written Notes</Label>
+                                <Textarea
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                    placeholder="Takeaways, feelings, or automatic transcript..."
+                                    className="min-h-[120px]"
+                                />
+                            </div>
+                            <Button onClick={handleSaveNote} disabled={loading} className="w-full">
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Everything
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Add to Plan */}
+                <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={addToPlan} disabled={loading}>
+                    <Plus className="h-3 w-3 mr-1" /> Plan
+                </Button>
+            </div>
+        )
+    }
+
+    // -- RENDER Full (Expanded View) --
+    return (
+        <div className="flex flex-col gap-4 w-full">
+            {/* Rating Stars */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                            key={star}
+                            onClick={() => handleRate(star)}
+                            className="focus:outline-none transition-transform hover:scale-110"
+                        >
+                            <Star className={cn("h-5 w-5", star <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                        </button>
+                    ))}
+                    <span className="text-xs text-muted-foreground ml-2">{rating > 0 ? "Rated" : "Rate"}</span>
+                </div>
+            </div>
+
+            {/* Actions Row */}
+            <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowNotes(true)}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {notes || playableUrl ? "View/Edit Notes" : "Add Note"}
+                </Button>
+                <Button variant="default" size="sm" className="flex-1" onClick={addToPlan} disabled={loading}>
+                    <Plus className="h-4 w-4 mr-2" /> Add to Plan
+                </Button>
+            </div>
+
+            {/* Reopen Note Logic for Full View (Duplicate of condensed but usually triggered by above button) */}
+            <Dialog open={showNotes} onOpenChange={setShowNotes}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Your Notes</DialogTitle></DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label>Voice Note</Label>
+                            <NoteRecorder
+                                onSave={(blob) => setAudioBlob(blob)}
+                                initialAudioUrl={playableUrl}
+                                onDelete={handleDeleteAudio}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Written Notes</Label>
+                            <Textarea
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                className="min-h-[120px]"
+                            />
+                        </div>
+                        <Button onClick={handleSaveNote} disabled={loading} className="w-full">
+                            Save Everything
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
+    )
+}

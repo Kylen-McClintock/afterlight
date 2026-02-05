@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input"
 import { Mail, Send, Plus, Loader2 } from "lucide-react"
 import { CollectionManager } from "@/components/collections/CollectionManager"
+import { CardInteractionBar } from "@/components/shared/CardInteractionBar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface PromptLibraryProps {
@@ -117,16 +118,46 @@ export function PromptLibrary({ onSelect, onFreeForm }: PromptLibraryProps) {
 
     const [userName, setUserName] = useState("A friend")
 
+    const [userId, setUserId] = useState<string | null>(null)
+
     useEffect(() => {
         const fetchUser = async () => {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
-            if (user?.user_metadata?.full_name) {
-                setUserName(user.user_metadata.full_name)
+            if (user) {
+                setUserId(user.id)
+                if (user.user_metadata?.full_name) {
+                    setUserName(user.user_metadata.full_name)
+                }
             }
         }
         fetchUser()
     }, [])
+
+    const handleDeletePrompt = async (prompt: any) => {
+        const supabase = createClient()
+        // If it's a request (has no user_id property usually, but we mapped it).
+        // Best guess: If it's in global table, it has an ID. If in requests table, it has an ID.
+        // We can try deleting from 'prompt_library_global' first.
+        let error = null
+
+        // Try global first
+        const { error: globalError, count } = await supabase.from('prompt_library_global').delete().eq('id', prompt.id)
+
+        if (globalError || count === 0) {
+            // Try requests
+            const { error: reqError } = await supabase.from('prompt_requests').delete().eq('id', prompt.id)
+            if (reqError) error = reqError
+        } else if (globalError) {
+            error = globalError
+        }
+
+        if (error) {
+            alert("Could not delete prompt: " + error.message)
+        } else {
+            fetchPrompts() // Refresh
+        }
+    }
 
     const handleSendInvite = () => {
         if (!inviteEmails) return
@@ -230,7 +261,13 @@ ${userName}`
                                                     Share
                                                 </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => onSelect(prompt)}>Select</Button>
-                                                <AddToPlanButton promptId={prompt.id} />
+                                                <Button variant="ghost" size="sm" onClick={() => onSelect(prompt)}>Select</Button>
+                                                <CardInteractionBar
+                                                    itemId={prompt.id}
+                                                    itemType="prompt"
+                                                    variant="condensed"
+                                                    onDelete={(userId && prompt.user_id === userId) ? () => handleDeletePrompt(prompt) : undefined}
+                                                />
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -289,42 +326,4 @@ ${userName}`
     )
 }
 
-function AddToPlanButton({ promptId }: { promptId: string }) {
-    const [loading, setLoading] = useState(false)
 
-    const addToPlan = async (e: React.MouseEvent) => {
-        e.stopPropagation()
-        setLoading(true)
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        // Find active plan
-        const { data: plan } = await supabase
-            .from('weekly_plans')
-            .select('id')
-            .eq('user_id', user?.id)
-            .eq('is_active', true)
-            .limit(1)
-            .single()
-
-        if (plan) {
-            await supabase.from('weekly_plan_items').insert({
-                plan_id: plan.id,
-                item_type: 'prompt',
-                prompt_id: promptId,
-                status: 'pending'
-            })
-            alert("Added to your weekly plan!")
-        } else {
-            alert("No active weekly plan found.")
-        }
-        setLoading(false)
-    }
-
-    return (
-        <Button variant="ghost" size="sm" onClick={addToPlan} disabled={loading} className="gap-1">
-            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-            <span className="sr-only sm:not-sr-only sm:inline-block">Plan</span>
-        </Button>
-    )
-}
