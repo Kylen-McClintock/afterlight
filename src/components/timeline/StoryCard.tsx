@@ -126,10 +126,22 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
 
     // Helper to render preview
     const renderPreview = () => {
-        if (!mainAsset) return null
-
         // Find associated transcript if any
         const transcriptAsset = story.story_assets?.find(a => a.asset_type === 'text' && (a.source_type === 'transcription' || (!a.source_type && a.text_content)))
+
+        // If no main asset but we have transcript, treat transcript as main content
+        if (!mainAsset && transcriptAsset) {
+            return (
+                <div className="px-4 py-3 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
+                    <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
+                    <div className="text-sm text-foreground/80 line-clamp-4 italic font-serif">
+                        "{transcriptAsset.text_content}"
+                    </div>
+                </div>
+            )
+        }
+
+        if (!mainAsset) return null
 
         let content = null
 
@@ -146,9 +158,9 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                     {transcriptAsset && transcriptAsset.text_content && (
                         <div className="px-3 py-2 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
                             <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
-                            <p className="text-sm text-foreground/80 line-clamp-3 italic">
+                            <div className="text-sm text-foreground/80 line-clamp-3 italic">
                                 "{transcriptAsset.text_content}"
-                            </p>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -161,11 +173,21 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         } else if (mainAsset.asset_type === 'photo' && mainAsset.storage_path) {
             content = (
-                <div className="rounded-md overflow-hidden aspect-video bg-muted relative">
-                    <StoryImage
-                        storagePath={mainAsset.storage_path}
-                        className="w-full h-full object-cover"
-                    />
+                <div className="space-y-3">
+                    <div className="rounded-md overflow-hidden aspect-video bg-muted relative">
+                        <StoryImage
+                            storagePath={mainAsset.storage_path}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                    {transcriptAsset && transcriptAsset.text_content && (
+                        <div className="px-3 py-2 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
+                            <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
+                            <div className="text-sm text-foreground/80 line-clamp-3 italic">
+                                "{transcriptAsset.text_content}"
+                            </div>
+                        </div>
+                    )}
                 </div>
             )
         }
