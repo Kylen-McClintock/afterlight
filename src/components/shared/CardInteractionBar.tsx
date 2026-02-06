@@ -18,9 +18,10 @@ interface CardInteractionBarProps {
     onUpdate?: () => void
     onDelete?: () => Promise<void>
     variant?: 'condensed' | 'full'
+    imageThumbnail?: string | null
 }
 
-export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, onDelete, variant = 'condensed' }: CardInteractionBarProps) {
+export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, onDelete, variant = 'condensed', imageThumbnail }: CardInteractionBarProps) {
     const [loading, setLoading] = useState(false)
     const [showNotes, setShowNotes] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
