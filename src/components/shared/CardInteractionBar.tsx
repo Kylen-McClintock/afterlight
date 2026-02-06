@@ -211,14 +211,19 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
         return (
             <div className="flex flex-col gap-2 w-full" onClick={e => e.stopPropagation()}>
                 {/* Notes Preview */}
-                {(notes || playableUrl) && (
-                    <div className="bg-muted/40 p-2 rounded text-xs text-muted-foreground line-clamp-2 border-l-2 border-primary mb-1 italic">
-                        {notes || (playableUrl ? "Audio note recorded..." : "")}
+                {(notes || playableUrl || imageThumbnail) && (
+                    <div className="bg-muted/40 p-2 rounded text-xs text-muted-foreground line-clamp-2 border-l-2 border-primary mb-1 italic flex items-center gap-2">
+                        {imageThumbnail && (
+                            <div className="h-8 w-8 rounded overflow-hidden shadow-sm border bg-muted shrink-0">
+                                <img src={imageThumbnail} alt="Thumbnail" className="h-full w-full object-cover" />
+                            </div>
+                        )}
+                        <span>{notes || (playableUrl ? "Audio note recorded..." : (imageThumbnail ? "Image Attached" : ""))}</span>
                     </div>
                 )}
 
                 <div className="flex justify-between items-center w-full">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                         {/* Note Dialog Trigger */}
                         <Dialog open={showNotes} onOpenChange={setShowNotes}>
                             <DialogTrigger asChild>
@@ -262,37 +267,60 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                             </DialogContent>
                         </Dialog>
 
+                        {/* Rating Stars (Condensed) */}
+                        <div className="flex items-center gap-0.5 ml-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={star}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleRate(star)
+                                    }}
+                                    className="focus:outline-none transition-transform hover:scale-110"
+                                >
+                                    <Star
+                                        className={cn(
+                                            "h-3 w-3 transition-colors",
+                                            rating >= star ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30 hover:text-yellow-200"
+                                        )}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-1">
                         {/* Add to Plan */}
                         <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={addToPlan} disabled={loading}>
                             <Plus className="h-3 w-3 mr-1" /> Plan
                         </Button>
-                    </div>
 
-                    {onDelete && (
-                        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                            <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50">
-                                    <Trash2 className="h-3 w-3" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2 text-red-600">
-                                        <AlertTriangle className="h-5 w-5" /> Delete Item?
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        Are you sure you want to delete this? This action cannot be undone.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-                                    <Button variant="destructive" onClick={handleDeleteConfirm} disabled={loading}>
-                                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Forever"}
+                        {onDelete && (
+                            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                                <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50">
+                                        <Trash2 className="h-3 w-3" />
                                     </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    )}
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                                            <AlertTriangle className="h-5 w-5" /> Delete Item?
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Are you sure you want to delete this? This action cannot be undone.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                                        <Button variant="destructive" onClick={handleDeleteConfirm} disabled={loading}>
+                                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Forever"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </div>
                 </div>
             </div>
         )

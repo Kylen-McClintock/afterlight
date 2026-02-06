@@ -84,6 +84,19 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
         fetchInteraction()
     }, [story.id])
 
+    // Fetch Thumbnail URL for Interaction Bar
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+    useEffect(() => {
+        if (mainAsset?.asset_type === 'photo' && mainAsset.storage_path) {
+            const fetchUrl = async () => {
+                const supabase = createClient()
+                const { data } = await supabase.storage.from('stories').createSignedUrl(mainAsset.storage_path!, 3600)
+                if (data) setThumbnailUrl(data.signedUrl)
+            }
+            fetchUrl()
+        }
+    }, [mainAsset])
+
     // Debugging: Inspect assets to ensure we receiving the transcript
     // console.log("Story Assets:", story.title, story.story_assets)
 
@@ -116,7 +129,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
         if (!mainAsset) return null
 
         // Find associated transcript if any
-        const transcriptAsset = story.story_assets?.find(a => a.asset_type === 'text' && a.source_type === 'transcription')
+        const transcriptAsset = story.story_assets?.find(a => a.asset_type === 'text' && (a.source_type === 'transcription' || (!a.source_type && a.text_content)))
 
         let content = null
 
@@ -252,6 +265,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                         onUpdate={refreshInteraction}
                         onDelete={handleDelete}
                         variant="condensed"
+                        imageThumbnail={thumbnailUrl}
                     />
                 </div>
             </CardFooter>
