@@ -292,7 +292,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             <div className="px-4 py-2 border-t bg-muted/5">
                 <Link href={`/app/story/${story.id}`} className="w-full">
                     <Button variant="ghost" size="sm" className="w-full justify-between group h-8 text-xs text-muted-foreground">
-                        View Full Experience
+                        Open Full Story
                         <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     </Button>
                 </Link>

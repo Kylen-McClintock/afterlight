@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Wand2, Loader2, AlertCircle } from "lucide-react"
+import { FileText, Wand2, Loader2, AlertCircle, UserCircle2 } from "lucide-react"
 import { MediaPlayer } from "@/components/timeline/MediaPlayer"
 import { StoryImage } from "@/components/timeline/StoryImage"
 import { createClient } from "@/utils/supabase/client"
@@ -18,6 +18,23 @@ export function StoryAssetViewer({ asset, storyId, relatedTranscript }: StoryAss
     const [transcript, setTranscript] = useState<string>(asset.text_content || relatedTranscript || "")
     const [isTranscribing, setIsTranscribing] = useState(false)
     const [error, setError] = useState("")
+
+    const [authorName, setAuthorName] = useState<string | null>(
+        asset.profile?.display_name || asset.profiles?.display_name || null
+    )
+
+    useEffect(() => {
+        if (!authorName && asset.created_by_user_id) {
+            const fetchAuthor = async () => {
+                const supabase = createClient()
+                const { data } = await supabase.from('profiles').select('display_name').eq('id', asset.created_by_user_id).single()
+                if (data?.display_name) {
+                    setAuthorName(data.display_name)
+                }
+            }
+            fetchAuthor()
+        }
+    }, [asset.created_by_user_id, authorName])
 
     const handleTranscribe = async () => {
         if (!asset.storage_path) return
@@ -59,7 +76,15 @@ export function StoryAssetViewer({ asset, storyId, relatedTranscript }: StoryAss
         return (
             <Card>
                 <CardContent className="p-6 flex flex-col gap-4">
-                    <h3 className="font-semibold">Audio Recording</h3>
+                    <div className="flex justify-between items-start">
+                        <h3 className="font-semibold">Audio Recording</h3>
+                        {authorName && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border">
+                                <UserCircle2 className="h-3.5 w-3.5" />
+                                <span>{authorName}</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="rounded-md border bg-muted/20">
                         <MediaPlayer storagePath={asset.storage_path} type="audio" duration={asset.duration_seconds} />
                     </div>
@@ -96,8 +121,14 @@ export function StoryAssetViewer({ asset, storyId, relatedTranscript }: StoryAss
     if (asset.asset_type === 'video') {
         return (
             <div className="block space-y-4">
-                <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg border">
+                <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-lg border">
                     <MediaPlayer storagePath={asset.storage_path} type="video" />
+                    {authorName && (
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5 text-xs text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-md border border-white/20 z-10">
+                            <UserCircle2 className="h-3.5 w-3.5" />
+                            <span>{authorName}</span>
+                        </div>
+                    )}
                 </div>
                 {transcript && (
                     <Card><CardContent className="p-4 bg-muted/30"><p className="text-sm">{transcript}</p></CardContent></Card>
@@ -108,8 +139,14 @@ export function StoryAssetViewer({ asset, storyId, relatedTranscript }: StoryAss
 
     if (asset.asset_type === 'photo') {
         return (
-            <div className="rounded-lg overflow-hidden shadow-md">
+            <div className="relative rounded-lg overflow-hidden shadow-md group">
                 <StoryImage storagePath={asset.storage_path} alt="Story Photo" />
+                {authorName && (
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 text-xs text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <UserCircle2 className="h-3.5 w-3.5" />
+                        <span>{authorName}</span>
+                    </div>
+                )}
             </div>
         )
     }

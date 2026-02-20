@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/client"
-import { Calendar as CalendarIcon, Loader2, X, Upload, Mic, Play, Pause, Wand2, UserPlus, Users, FileText } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, X, Upload, Mic, Play, Pause, Wand2, UserPlus, Users, FileText, Trash2 } from "lucide-react"
 import { StoryRecorder } from "./StoryRecorder"
 import { StoryImage } from "@/components/timeline/StoryImage"
 
@@ -186,6 +186,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
             return
         }
 
+        const { data: { user } } = await supabase.auth.getUser()
+
         const { data: assetData, error: dbError } = await supabase
             .from('story_assets')
             .insert({
@@ -193,7 +195,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                 asset_type: 'photo',
                 source_type: 'file_upload',
                 storage_path: filePath,
-                mime_type: file.type
+                mime_type: file.type,
+                created_by_user_id: user?.id
             })
             .select()
             .single()
@@ -206,6 +209,34 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
         }
         setUploading(false)
         e.target.value = ""
+    }
+
+    const handleDeletePhoto = async (photoId: string, storagePath?: string) => {
+        if (!confirm("Are you sure you want to delete this photo?")) return
+        setLoading(true)
+        const supabase = createClient()
+
+        let success = true
+
+        if (storagePath) {
+            const { error: storageError } = await supabase.storage.from('stories').remove([storagePath])
+            if (storageError) {
+                console.error("Error removing from storage:", storageError)
+            }
+        }
+
+        const { error: dbError } = await supabase.from('story_assets').delete().eq('id', photoId)
+        if (dbError) {
+            console.error("Error deleting from DB:", dbError)
+            alert("Failed to delete photo from database.")
+            success = false
+        }
+
+        if (success) {
+            setPhotos(photos.filter(p => p.id !== photoId))
+            onSuccess() // Refresh parent state if needed
+        }
+        setLoading(false)
     }
 
     const [isPlaying, setIsPlaying] = useState(false)
@@ -230,11 +261,13 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
 
             if (data.text) {
                 const supabase = createClient()
+                const { data: { user } } = await supabase.auth.getUser()
                 await supabase.from('story_assets').insert({
                     story_session_id: story.id,
                     asset_type: 'text',
                     source_type: 'transcription',
-                    text_content: data.text
+                    text_content: data.text,
+                    created_by_user_id: user?.id
                 })
 
                 alert("Transcription complete! Added as a note.")
@@ -379,12 +412,24 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                         <Label>Photos</Label>
                         <div className="grid grid-cols-3 gap-2">
                             {photos.map((photo: any) => (
-                                <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden bg-muted border">
+                                <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden bg-muted border group">
                                     <StoryImage
                                         storagePath={photo.storage_path}
                                         alt="Story attachment"
                                         className="w-full h-full object-cover"
                                     />
+                                    <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeletePhoto(photo.id, photo.storage_path)
+                                        }}
+                                        disabled={loading}
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                    </Button>
                                 </div>
                             ))}
 
@@ -478,11 +523,13 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                 if (!note) return
 
                                 const supabase = createClient()
+                                const { data: { user } } = await supabase.auth.getUser()
                                 await supabase.from('story_assets').insert({
                                     story_session_id: story.id,
                                     asset_type: 'text',
                                     source_type: 'text',
-                                    text_content: note
+                                    text_content: note,
+                                    created_by_user_id: user?.id
                                 })
                                 onSuccess()
                                 setOpen(false)
@@ -528,13 +575,15 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                         }
 
                                         const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(fileName)
+                                        const { data: { user } } = await supabase.auth.getUser()
 
                                         const { data: newAsset, error: dbError } = await supabase.from('story_assets').insert({
                                             story_session_id: story.id,
                                             asset_type: 'audio',
                                             source_type: 'browser_recording',
                                             storage_path: fileName,
-                                            mime_type: 'audio/webm'
+                                            mime_type: 'audio/webm',
+                                            created_by_user_id: user?.id
                                         }).select().single()
 
                                         if (dbError) {
@@ -562,7 +611,8 @@ export function EditStoryDialog({ story, onSuccess, trigger }: EditStoryDialogPr
                                                         story_session_id: story.id,
                                                         asset_type: 'text',
                                                         source_type: 'transcription',
-                                                        text_content: data.text
+                                                        text_content: data.text,
+                                                        created_by_user_id: user?.id
                                                     })
                                                     setTranscriptText(data.text)
                                                     alert("Transcription complete!")
