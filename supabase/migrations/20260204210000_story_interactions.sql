@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS public.story_interactions (
 
 ALTER TABLE public.story_interactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their own story interactions" ON public.story_interactions;
+
 CREATE POLICY "Users can manage their own story interactions" ON public.story_interactions
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);

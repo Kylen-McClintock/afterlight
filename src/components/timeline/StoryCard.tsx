@@ -5,11 +5,12 @@ import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Play, FileText, Image as ImageIcon, Video, ExternalLink, MapPin, Edit, Calendar } from "lucide-react"
+import { Play, FileText, Image as ImageIcon, Video, ExternalLink, MapPin, Edit, Calendar, Share2 } from "lucide-react"
 import Link from "next/link"
 import { MediaPlayer } from "./MediaPlayer"
 import { StoryImage } from "./StoryImage"
 import { EditStoryDialog } from "@/components/story/EditStoryDialog"
+import { ShareDialog } from "@/components/story/ShareDialog"
 import { useRouter } from "next/navigation"
 import { CardInteractionBar } from "@/components/shared/CardInteractionBar"
 
@@ -173,19 +174,23 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         } else if (mainAsset.asset_type === 'photo' && mainAsset.storage_path) {
             content = (
-                <div className="space-y-3">
-                    <div className="rounded-md overflow-hidden aspect-video bg-muted relative">
+                <div className="flex gap-4 items-start">
+                    <div className="w-24 h-24 rounded-md overflow-hidden bg-muted flex-shrink-0 relative border border-border/50 shadow-sm">
                         <StoryImage
                             storagePath={mainAsset.storage_path}
                             className="w-full h-full object-cover"
                         />
                     </div>
-                    {transcriptAsset && transcriptAsset.text_content && (
-                        <div className="px-3 py-2 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
+                    {transcriptAsset && transcriptAsset.text_content ? (
+                        <div className="flex-1 px-3 py-2 bg-muted/20 border-l-2 border-primary/20 rounded-r-md min-h-[6rem]">
                             <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
                             <div className="text-sm text-foreground/80 line-clamp-3 italic">
                                 "{transcriptAsset.text_content}"
                             </div>
+                        </div>
+                    ) : (
+                        <div className="flex-1 px-3 py-2 text-sm text-muted-foreground bg-muted/5 italic flex items-center min-h-[6rem]">
+                            Image memory recorded.
                         </div>
                     )}
                 </div>
@@ -238,18 +243,30 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                             <CardTitle className="text-xl leading-tight mt-1 flex-1">
                                 {story.title || "Untitled Story"}
                             </CardTitle>
-                            {/* Edit Button for Owner */}
-                            {isOwner && (
-                                <EditStoryDialog
-                                    story={story}
-                                    onSuccess={() => router.refresh()}
+
+                            <div className="flex gap-1 -mt-1 shrink-0">
+                                <ShareDialog
+                                    storyId={story.id}
+                                    storyTitle={story.title}
                                     trigger={
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 text-muted-foreground hover:text-foreground">
-                                            <Edit className="h-4 w-4" />
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                            <Share2 className="h-4 w-4" />
                                         </Button>
                                     }
                                 />
-                            )}
+                                {/* Edit Button for Owner */}
+                                {isOwner && (
+                                    <EditStoryDialog
+                                        story={story}
+                                        onSuccess={() => router.refresh()}
+                                        trigger={
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        }
+                                    />
+                                )}
+                            </div>
                         </div>
 
                         {story.storyteller && (

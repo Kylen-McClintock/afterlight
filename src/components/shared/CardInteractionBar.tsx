@@ -214,7 +214,7 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                 {(notes || playableUrl || imageThumbnail) && (
                     <div className="bg-muted/40 p-2 rounded text-xs text-muted-foreground line-clamp-2 border-l-2 border-primary mb-1 italic flex items-center gap-2">
                         {imageThumbnail && (
-                            <div className="h-8 w-8 rounded overflow-hidden shadow-sm border bg-muted shrink-0">
+                            <div className="h-12 w-12 rounded overflow-hidden shadow-sm border bg-muted shrink-0">
                                 <img src={imageThumbnail} alt="Thumbnail" className="h-full w-full object-cover" />
                             </div>
                         )}

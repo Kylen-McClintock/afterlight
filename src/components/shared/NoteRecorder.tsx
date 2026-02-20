@@ -28,36 +28,24 @@ export function NoteRecorder({ onSave, initialAudioUrl, onDelete }: NoteRecorder
     const analyzerRef = useRef<AnalyserNode | null>(null)
     const audioContextRef = useRef<AudioContext | null>(null)
 
-    // Fetch Devices
+    // Fetch Audio Devices
     useEffect(() => {
         const getDevices = async () => {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices()
-                let inputs = devices
-                    .filter(d => d.kind === 'audioinput')
+                let inputs = devices.filter(d => d.kind === 'audioinput')
 
-                // Smart Filtering: Remove virtual/teams devices
-                inputs = inputs.filter(d => {
-                    const label = d.label.toLowerCase()
-                    return !label.includes('virtual') && !label.includes('teams') && !label.includes('stereo mix')
-                })
-
-                // Smart Sorting: Default/Built-in first
-                inputs.sort((a, b) => {
-                    const aLabel = a.label.toLowerCase()
-                    const bLabel = b.label.toLowerCase()
-                    if (aLabel.includes('default')) return -1
-                    if (bLabel.includes('default')) return 1
-                    if (aLabel.includes('built-in')) return -1
-                    if (bLabel.includes('built-in')) return 1
-                    return 0
-                })
+                // Prioritize default, remove virtual/teams if possible
+                const defaultDevice = inputs.find(d => d.deviceId === 'default')
+                if (defaultDevice) {
+                    // Move default to front or just set it
+                    setSelectedDeviceId(defaultDevice.deviceId)
+                } else {
+                    const preferred = inputs.find(d => !d.label.toLowerCase().includes('virtual') && !d.label.toLowerCase().includes('teams'))
+                    if (inputs.length > 0) setSelectedDeviceId(preferred ? preferred.deviceId : inputs[0].deviceId)
+                }
 
                 setAudioDevices(inputs)
-                // Set default if available and not set
-                if (inputs.length > 0) {
-                    setSelectedDeviceId(prev => prev || inputs[0].deviceId)
-                }
             } catch (err) {
                 console.error("Device fetch error:", err)
             }
@@ -65,30 +53,39 @@ export function NoteRecorder({ onSave, initialAudioUrl, onDelete }: NoteRecorder
         getDevices()
     }, [])
 
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+
     const startRecording = async () => {
+        setError(null)
         try {
-            setError(null)
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true
             })
 
-            // Setup Analyzer
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-            if (audioContext.state === 'suspended') await audioContext.resume()
-            audioContextRef.current = audioContext
-            const source = audioContext.createMediaStreamSource(stream)
-            const analyzer = audioContext.createAnalyser()
-            analyzer.fftSize = 256
-            source.connect(analyzer)
-            analyzerRef.current = analyzer
-
             streamRef.current = stream
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+            audioContextRef.current = audioCtx
+            const analyser = audioCtx.createAnalyser()
+            analyzerRef.current = analyser
+            const source = audioCtx.createMediaStreamSource(stream)
+            source.connect(analyser)
+            analyser.fftSize = 256
+            const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
-            // MimeType Selection
-            const types = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"]
-            const selectedType = types.find(t => MediaRecorder.isTypeSupported(t)) || ""
+            const updateVolume = () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    analyser.getByteFrequencyData(dataArray)
+                    const avg = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length
+                    setVolumeLevel(avg)
+                    requestAnimationFrame(updateVolume)
+                }
+            }
 
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: selectedType })
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
             mediaRecorderRef.current = mediaRecorder
             chunksRef.current = []
 
@@ -97,78 +94,62 @@ export function NoteRecorder({ onSave, initialAudioUrl, onDelete }: NoteRecorder
             }
 
             mediaRecorder.onstop = () => {
-                const type = mediaRecorder.mimeType || selectedType
-                const blob = new Blob(chunksRef.current, { type })
+                const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
                 setMediaBlob(blob)
                 onSave(blob, duration)
-                stopStream()
             }
 
-            mediaRecorder.start(1000) // timeslice
+            mediaRecorder.start(100)
             setIsRecording(true)
-            setDuration(0)
+            updateVolume()
 
             timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1)
             }, 1000)
 
-            requestAnimationFrame(updateVolume)
-
         } catch (err: any) {
             console.error("Recording error:", err)
-            setError(err.message || "Could not access microphone.")
+            setError(err.message || "Failed to start recording")
         }
-    }
-
-    const updateVolume = () => {
-        if (!isRecording || !analyzerRef.current) return
-        const dataArray = new Uint8Array(analyzerRef.current.frequencyBinCount)
-        analyzerRef.current.getByteFrequencyData(dataArray)
-        const vol = dataArray.reduce((subject, a) => subject + a, 0) / dataArray.length
-        setVolumeLevel(vol)
-        requestAnimationFrame(updateVolume)
-    }
-
-    const stopStream = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(t => t.stop())
-            streamRef.current = null
-        }
-        if (audioContextRef.current) {
-            audioContextRef.current.close()
-            audioContextRef.current = null
-        }
-        setVolumeLevel(0)
     }
 
     const stopRecording = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop()
             setIsRecording(false)
-            if (timerRef.current) clearInterval(timerRef.current)
+        }
+        if (timerRef.current) clearInterval(timerRef.current)
+        if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop())
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+            audioContextRef.current.close()
         }
     }
 
     const reset = () => {
         setMediaBlob(null)
         setDuration(0)
-        setIsRecording(false)
+        setVolumeLevel(0)
+        chunksRef.current = []
     }
 
-    const formatTime = (s: number) => {
-        const m = Math.floor(s / 60)
-        const sec = s % 60
-        return `${m}:${sec.toString().padStart(2, '0')}`
-    }
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
+            if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop())
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close()
+            }
+        }
+    }, [])
 
     return (
         <div className="space-y-4">
             {/* Mic Select - Only show when NOT recording and NO blob */}
             {/* Wrapped in a div with explicit z-index to stay above other elements if menu opens */}
             {!isRecording && !mediaBlob && !initialAudioUrl && audioDevices.length > 0 && (
-                <div className="relative z-20">
+                <div className="relative z-20 mb-8 w-full max-w-[240px] mx-auto">
                     <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
-                        <SelectTrigger className="w-full text-xs h-8">
+                        <SelectTrigger className="w-full text-xs h-8 bg-background/80 backdrop-blur">
                             <SelectValue placeholder="Select Microphone" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[200px] z-50">
