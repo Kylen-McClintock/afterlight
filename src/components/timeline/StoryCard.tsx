@@ -49,7 +49,9 @@ interface StoryCardProps {
 
 export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const router = useRouter()
-    const mainAsset = story.story_assets?.[0]
+    const mainMediaAsset = story.story_assets?.find(a => ['audio', 'video', 'photo'].includes(a.asset_type))
+    const transcriptAssetNode = story.story_assets?.find(a => a.asset_type === 'text' && (a.source_type === 'transcription' || a.text_content))
+    const mainAsset = mainMediaAsset || transcriptAssetNode || story.story_assets?.[0]
     const isGuest = currentUserId && story.storyteller_user_id && story.storyteller_user_id !== currentUserId
     const isOwner = currentUserId && story.storyteller_user_id === currentUserId
 
@@ -129,33 +131,34 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const renderPreview = () => {
         // Find associated transcript if any
         const transcriptAsset = story.story_assets?.find(a => a.asset_type === 'text' && (a.source_type === 'transcription' || (!a.source_type && a.text_content)))
+        const mediaAsset = story.story_assets?.find(a => ['audio', 'video', 'photo'].includes(a.asset_type))
 
-        // If no main asset but we have transcript, treat transcript as main content
-        if (!mainAsset && transcriptAsset) {
-            return (
-                <div className="px-4 py-3 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
-                    <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
-                    <div className="text-sm text-foreground/80 line-clamp-4 italic font-serif">
-                        "{transcriptAsset.text_content}"
+        // No media, just text or transcript
+        if (!mediaAsset) {
+            if (transcriptAsset) {
+                return (
+                    <div className="px-4 py-3 bg-muted/20 border-l-2 border-primary/20 rounded-r-md min-h-[6rem]">
+                        <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
+                        <div className="text-sm text-foreground/80 line-clamp-4 italic font-serif">
+                            "{transcriptAsset.text_content}"
+                        </div>
                     </div>
-                </div>
-            )
+                )
+            } else if (mainAsset?.asset_type === 'text') {
+                return (
+                    <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3 font-serif min-h-[6rem]">
+                        "{mainAsset.text_content}"
+                    </div>
+                )
+            }
+            return null
         }
 
-        if (!mainAsset) return null
-
-        let content = null
-
-        if (mainAsset.asset_type === 'text' && mainAsset.source_type !== 'transcription') {
-            content = (
-                <div className="p-4 bg-muted/30 rounded-md italic text-muted-foreground line-clamp-3 font-serif">
-                    "{mainAsset.text_content}"
-                </div>
-            )
-        } else if ((mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video') && mainAsset.storage_path) {
-            content = (
+        // We have media
+        if ((mediaAsset.asset_type === 'audio' || mediaAsset.asset_type === 'video') && mediaAsset.storage_path) {
+            return (
                 <div className="space-y-3">
-                    <MediaPlayer storagePath={mainAsset.storage_path} type={mainAsset.asset_type} duration={mainAsset.duration_seconds} />
+                    <MediaPlayer storagePath={mediaAsset.storage_path} type={mediaAsset.asset_type} duration={mediaAsset.duration_seconds} />
                     {transcriptAsset && transcriptAsset.text_content && (
                         <div className="px-3 py-2 bg-muted/20 border-l-2 border-primary/20 rounded-r-md">
                             <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Transcript</p>
@@ -166,18 +169,18 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                     )}
                 </div>
             )
-        } else if (mainAsset.external_url && (mainAsset.asset_type === 'audio' || mainAsset.asset_type === 'video')) {
-            content = (
-                <a href={mainAsset.external_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm p-4 block">
+        } else if (mediaAsset.external_url && (mediaAsset.asset_type === 'audio' || mediaAsset.asset_type === 'video')) {
+            return (
+                <a href={mediaAsset.external_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline text-sm p-4 block">
                     View External Media
                 </a>
             )
-        } else if (mainAsset.asset_type === 'photo' && mainAsset.storage_path) {
-            content = (
+        } else if (mediaAsset.asset_type === 'photo' && mediaAsset.storage_path) {
+            return (
                 <div className="flex gap-4 items-start">
                     <div className="w-24 h-24 rounded-md overflow-hidden bg-muted flex-shrink-0 relative border border-border/50 shadow-sm">
                         <StoryImage
-                            storagePath={mainAsset.storage_path}
+                            storagePath={mediaAsset.storage_path}
                             className="w-full h-full object-cover"
                         />
                     </div>
@@ -197,7 +200,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )
         }
 
-        return content
+        return null
     }
 
     return (
