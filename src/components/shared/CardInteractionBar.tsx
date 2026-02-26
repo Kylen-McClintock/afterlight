@@ -222,18 +222,18 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                     </div>
                 )}
 
-                <div className="flex justify-between items-center w-full">
-                    <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap justify-between items-center w-full gap-y-2 gap-x-1">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
                         {/* Note Dialog Trigger */}
                         <Dialog open={showNotes} onOpenChange={setShowNotes}>
                             <DialogTrigger asChild>
                                 <Button
                                     variant={notes || playableUrl ? "secondary" : "ghost"}
                                     size="sm"
-                                    className={cn("text-xs h-7 px-2", (notes || playableUrl) && "text-primary font-semibold bg-primary/10 hover:bg-primary/20")}
+                                    className={cn("text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3", (notes || playableUrl) && "text-primary font-semibold bg-primary/10 hover:bg-primary/20")}
                                 >
-                                    <MessageSquare className="h-3 w-3 mr-1" />
-                                    {notes || playableUrl ? "Notes Attached" : "Note"}
+                                    <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                                    {notes || playableUrl ? "Notes" : "Note"}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
@@ -280,7 +280,7 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                                 >
                                     <Star
                                         className={cn(
-                                            "h-3 w-3 transition-colors",
+                                            "h-4 w-4 sm:h-3.5 sm:w-3.5 transition-colors",
                                             rating >= star ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30 hover:text-yellow-200"
                                         )}
                                     />
@@ -289,10 +289,11 @@ export function CardInteractionBar({ itemId, itemType, interaction, onUpdate, on
                         </div>
                     </div>
 
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1 items-center ml-auto">
                         {/* Add to Plan */}
-                        <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={addToPlan} disabled={loading}>
-                            <Plus className="h-3 w-3 mr-1" /> Plan
+                        <Button variant="ghost" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2" onClick={addToPlan} disabled={loading}>
+                            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 min-w-3.5 mr-1" />
+                            <span className="hidden sm:inline">Plan</span>
                         </Button>
 
                         {onDelete && (
