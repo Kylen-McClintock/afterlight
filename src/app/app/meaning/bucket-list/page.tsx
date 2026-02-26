@@ -173,40 +173,40 @@ export default function BucketListPage() {
                 {items.map(item => (
                     <Card key={item.id} className={item.is_completed ? "opacity-60" : ""}>
                         <CardContent className="p-6">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-4 flex-1">
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-4 w-full min-w-0">
+                                <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0 w-full">
                                     <button
                                         className={`mt-1 h-6 w-6 shrink-0 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${item.is_completed ? "bg-primary border-primary text-white" : "border-muted-foreground hover:border-primary"}`}
                                         onClick={() => toggleComplete(item.id, item.is_completed)}
                                     >
                                         {item.is_completed && <Check className="h-4 w-4" />}
                                     </button>
-                                    <div className="space-y-1 flex-1">
-                                        <h3 className={`font-heading font-semibold text-lg ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                        <h3 className={`font-heading font-semibold text-lg break-words ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>
                                             {item.title}
                                         </h3>
-                                        <p className="text-sm text-muted-foreground">{item.why_it_matters}</p>
+                                        <p className="text-sm text-muted-foreground break-words">{item.why_it_matters}</p>
 
                                         {/* Detailed View */}
                                         {expandedId === item.id && (
                                             <div className="mt-4 pt-4 border-t grid md:grid-cols-2 gap-4 text-sm animate-in slide-in-from-top-2">
-                                                <div>
+                                                <div className="min-w-0">
                                                     <span className="font-semibold block text-primary mb-1">Tiny Version</span>
-                                                    <p className="bg-secondary/30 p-2 rounded">{item.tiny_version || "Not defined"}</p>
+                                                    <p className="bg-secondary/30 p-2 rounded break-words">{item.tiny_version || "Not defined"}</p>
                                                 </div>
-                                                <div>
+                                                <div className="min-w-0">
                                                     <span className="font-semibold block text-primary mb-1">Full Version</span>
-                                                    <p className="bg-secondary/30 p-2 rounded">{item.full_version || "Not defined"}</p>
+                                                    <p className="bg-secondary/30 p-2 rounded break-words">{item.full_version || "Not defined"}</p>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
-                                        {expandedId === item.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end sm:justify-start">
+                                    <Button variant="ghost" size="sm" onClick={() => setExpandedId(expandedId === item.id ? null : item.id)} className="flex-1 sm:flex-none">
+                                        {expandedId === item.id ? <><ChevronUp className="h-4 w-4 sm:mr-0 mr-1" /> <span className="sm:hidden">Close</span></> : <><ChevronDown className="h-4 w-4 sm:mr-0 mr-1" /> <span className="sm:hidden">Expand</span></>}
                                     </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => deleteItem(item.id)}>
+                                    <Button variant="ghost" size="sm" onClick={() => deleteItem(item.id)} className="flex-1 sm:flex-none">
                                         <Trash2 className="h-4 w-4 text-muted-foreground hover:text-red-500" />
                                     </Button>
                                 </div>

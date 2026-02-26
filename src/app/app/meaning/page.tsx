@@ -61,13 +61,13 @@ export default function MeaningPage() {
                 </Link>
             </div>
 
-            <div className="p-6 bg-secondary/30 rounded-lg flex items-center justify-between">
+            <div className="p-6 bg-secondary/30 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h3 className="text-lg font-heading font-semibold">Your Weekly Plan</h3>
                     <p className="text-muted-foreground text-sm">Review your generated plan based on your values.</p>
                 </div>
-                <Link href="/app">
-                    <Button variant="outline">View Plan <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                <Link href="/app" className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full sm:w-auto mt-2 sm:mt-0">View Plan <ArrowRight className="ml-2 h-4 w-4" /></Button>
                 </Link>
             </div>
         </div>
