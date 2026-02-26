@@ -216,8 +216,8 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
             )}
 
             {isGuest && (
-                <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded-bl-md font-medium z-10">
-                    Guest Story
+                <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-bl-md font-medium z-10 shadow-sm">
+                    By {story.storyteller?.display_name || 'Guest'}
                 </div>
             )}
 
