@@ -90,12 +90,12 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                         <span className="sr-only">Expand</span>
                     </button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-xl z-50 max-h-[85vh] flex flex-col p-0 gap-0">
+                <DialogContent className="sm:max-w-3xl w-[95vw] z-50 max-h-[85vh] flex flex-col p-0 gap-0">
                     <DialogHeader className="p-6 pb-2">
                         <DialogTitle>{meditation.title}</DialogTitle>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto p-6 pt-2">
+                    <div className="flex-1 overflow-y-auto p-6 pt-3">
                         <div className="space-y-6">
                             {meditation.type === 'wisdom' && meditation.metadata?.useful_thought && (
                                 <div className="bg-primary/5 p-4 rounded-md border border-primary/10">
@@ -146,10 +146,10 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                 </DialogContent>
             </Dialog>
 
-            <CardFooter className="pt-0 border-t p-3 flex justify-between bg-muted/5 z-20 relative">
+            <CardFooter className="pt-0 border-t p-3 flex justify-between bg-muted/5 z-20 relative overflow-hidden">
                 {/* Condensed Bar for Card View */}
-                <div className="w-full flex justify-between items-center">
-                    <div className="flex-1">
+                <div className="w-full flex flex-wrap justify-between items-center gap-2 min-w-0">
+                    <div className="flex-1 min-w-[200px] overflow-hidden">
                         <CardInteractionBar
                             itemId={meditation.id}
                             itemType="meditation"
@@ -163,7 +163,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                     {meditation.type === 'video' && (
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="default" size="sm" className="text-xs h-7 px-2 ml-2 bg-red-600 hover:bg-red-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
+                                <Button variant="default" size="sm" className="text-xs h-7 px-2 shrink-0 bg-red-600 hover:bg-red-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
                                     <Play className="h-3 w-3 mr-1" /> Watch
                                 </Button>
                             </DialogTrigger>
@@ -186,8 +186,8 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                     {meditation.type === 'song' && (
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="default" size="sm" className="text-xs h-7 px-2 ml-2 bg-green-600 hover:bg-green-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
-                                    <Music className="h-3 w-3 mr-1" /> Listen
+                                <Button variant="default" size="sm" className="text-xs h-7 px-3 shrink-0 bg-green-600 hover:bg-green-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
+                                    <Music className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Listen</span>
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-md">
