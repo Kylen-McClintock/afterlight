@@ -149,7 +149,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
             <CardFooter className="pt-0 border-t p-3 flex justify-between bg-muted/5 z-20 relative overflow-hidden">
                 {/* Condensed Bar for Card View */}
                 <div className="w-full flex flex-wrap justify-between items-center gap-2 min-w-0">
-                    <div className="flex-1 min-w-[200px] overflow-hidden">
+                    <div className="flex-1 min-w-[120px] sm:min-w-[200px] overflow-hidden">
                         <CardInteractionBar
                             itemId={meditation.id}
                             itemType="meditation"
