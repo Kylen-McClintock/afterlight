@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Quote, Video, Mic, FileText, Sparkles, Play, Plus, History } from "lucide-react"
+import { Quote, Video, Mic, FileText, Sparkles, Play, Plus, History, Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MeditationCard } from "@/components/meditations/MeditationCard"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -64,6 +64,7 @@ export default function MeditationsPage() {
                     <TabsTrigger value="quotes">Quotes</TabsTrigger>
                     <TabsTrigger value="audio">Audio</TabsTrigger>
                     <TabsTrigger value="video">Video</TabsTrigger>
+                    <TabsTrigger value="music" className="gap-2"><Music className="h-3 w-3" /> Music</TabsTrigger>
                     <TabsTrigger value="text">Text</TabsTrigger>
                     <TabsTrigger value="wisdom" className="gap-2"><Sparkles className="h-3 w-3" /> Wisdom</TabsTrigger>
                     <TabsTrigger value="poetry" className="gap-2"><FileText className="h-3 w-3" /> Poetry</TabsTrigger>
@@ -120,6 +121,14 @@ export default function MeditationsPage() {
                 <TabsContent value="video">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {meditations.filter(m => m.type === 'video').map(med => (
+                            <MeditationCard key={med.id} meditation={med} interaction={interactions[med.id]} onUpdate={fetchData} />
+                        ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="music">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {meditations.filter(m => m.type === 'song').map(med => (
                             <MeditationCard key={med.id} meditation={med} interaction={interactions[med.id]} onUpdate={fetchData} />
                         ))}
                     </div>
