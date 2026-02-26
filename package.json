@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "npx supabase link --project-ref $SUPABASE_PROJECT_ID --password $SUPABASE_DB_PASSWORD && npx supabase db push --password $SUPABASE_DB_PASSWORD",
+    "prebuild": "bash scripts/push-migrations.sh",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
