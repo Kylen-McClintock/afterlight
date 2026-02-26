@@ -93,3 +93,14 @@ body {
   font-family: var(--font-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Accessibility Font Sizing */
+html.text-large {
+  font-size: 112.5%;
+  /* 18px base instead of 16px */
+}
+
+html.text-xlarge {
+  font-size: 125%;
+  /* 20px base instead of 16px */
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import { FontProvider } from "@/components/providers/FontProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,7 +16,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "AfterLight",
   description: "Preserve the light of your life.",
-  manifest: "/manifest.json", 
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${outfit.variable} antialiased`}
       >
-        {children}
+        <FontProvider>
+          {children}
+        </FontProvider>
       </body>
     </html>
   );

@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { FontSizer } from "./FontSizer"
 
 const navItems = [
     { href: "/app", label: "Home", icon: Home },
@@ -88,7 +89,8 @@ export function AppSidebar() {
                     </nav>
 
                     {/* Footer / User Profile */}
-                    <div className="p-4 border-t">
+                    <div className="p-4 border-t space-y-2">
+                        <FontSizer />
                         <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground">
                             <LogOut className="mr-2 h-4 w-4" />
                             Sign Out

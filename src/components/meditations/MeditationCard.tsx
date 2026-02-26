@@ -190,17 +190,17 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                                     <Music className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Listen</span>
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
+                            <DialogContent className="sm:max-w-2xl w-[95vw]">
                                 <DialogHeader>
                                     <DialogTitle>{meditation.title}</DialogTitle>
                                 </DialogHeader>
-                                <div className="w-full rounded-md overflow-hidden min-h-[152px]">
+                                <div className="w-full rounded-md overflow-hidden min-h-[352px]">
                                     {meditation.content.includes('spotify.com') ? (
                                         <iframe
                                             style={{ borderRadius: '12px' }}
                                             src={meditation.content.replace('/track/', '/embed/track/').replace('/playlist/', '/embed/playlist/').replace('/album/', '/embed/album/')}
                                             width="100%"
-                                            height="152"
+                                            height="352"
                                             frameBorder="0"
                                             allowFullScreen
                                             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
