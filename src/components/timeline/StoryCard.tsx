@@ -40,6 +40,7 @@ interface StorySession {
     prompt_request?: { prompt_text: string } | null
     recipients?: any[]
     circle_id?: string
+    circle?: any
 }
 
 interface StoryCardProps {
@@ -54,6 +55,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
     const mainAsset = mainMediaAsset || transcriptAssetNode || story.story_assets?.[0]
     const isGuest = currentUserId && story.storyteller_user_id && story.storyteller_user_id !== currentUserId
     const isOwner = currentUserId && story.storyteller_user_id === currentUserId
+    const isPrimaryUser = currentUserId && story.circle?.primary_user_id === currentUserId
 
     // Determine display date
     let displayDate = ""
@@ -305,7 +307,7 @@ export function StoryCard({ story, currentUserId }: StoryCardProps) {
                         itemType="story"
                         interaction={interaction}
                         onUpdate={refreshInteraction}
-                        onDelete={handleDelete}
+                        onDelete={isPrimaryUser ? handleDelete : undefined}
                         variant="condensed"
                         imageThumbnail={thumbnailUrl}
                     />

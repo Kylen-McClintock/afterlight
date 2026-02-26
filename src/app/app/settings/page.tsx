@@ -2,8 +2,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { User, Bell, Shield } from "lucide-react"
+import { createClient } from "@/utils/supabase/server"
+import { InviteManager } from "@/components/settings/InviteManager"
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let circleId = null
+    let isPrimaryOwner = false
+
+    if (user) {
+        const { data: membership } = await supabase
+            .from('circle_memberships')
+            .select('circle_id, role, circles(name, primary_user_id)')
+            .eq('user_id', user.id)
+            .single()
+
+        if (membership) {
+            circleId = membership.circle_id
+            isPrimaryOwner = (membership.circles as any)?.primary_user_id === user.id
+        }
+    }
     return (
         <div className="max-w-2xl mx-auto space-y-8">
             <div>
@@ -34,11 +54,17 @@ export default function SettingsPage() {
                         <Shield className="h-5 w-5 text-primary" />
                         <CardTitle>Circle Access</CardTitle>
                     </div>
-                    <CardDescription>Manage who can see your stories.</CardDescription>
+                    <CardDescription>Manage who can see and add to your stories.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">You are the Primary owner of <strong>My Circle</strong>.</p>
-                    <Button variant="outline">Invite Family Member</Button>
+                    {isPrimaryOwner ? (
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground mb-4">You are the Primary owner of your circle.</p>
+                            <InviteManager circleId={circleId} isPrimaryOwner={isPrimaryOwner} />
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">You are a Contributor in this circle. Only the Primary User can manage invites.</p>
+                    )}
                 </CardContent>
             </Card>
         </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Wand2, Loader2, AlertCircle, UserCircle2 } from "lucide-react"
+import { FileText, Wand2, Loader2, AlertCircle, UserCircle2, ExternalLink } from "lucide-react"
 import { MediaPlayer } from "@/components/timeline/MediaPlayer"
 import { StoryImage } from "@/components/timeline/StoryImage"
 import { createClient } from "@/utils/supabase/client"
@@ -138,6 +138,28 @@ export function StoryAssetViewer({ asset, storyId, relatedTranscript }: StoryAss
     }
 
     if (asset.asset_type === 'photo') {
+        if (asset.source_type === 'external_link' && asset.external_url) {
+            return (
+                <div className="relative rounded-lg p-4 bg-muted/20 border flex flex-col sm:flex-row sm:items-center gap-4 group hover:bg-muted/30 transition-colors">
+                    <div className="bg-primary/10 p-3 rounded-full shrink-0 w-fit">
+                        <ExternalLink className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm">Cloud Photos Collection</h4>
+                        <a href={asset.external_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline block mt-1 truncate">
+                            {asset.external_url}
+                        </a>
+                    </div>
+                    {authorName && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background px-2 py-1 rounded-md border shadow-sm shrink-0 self-start sm:self-auto">
+                            <UserCircle2 className="h-3.5 w-3.5" />
+                            <span>Added by {authorName}</span>
+                        </div>
+                    )}
+                </div>
+            )
+        }
+
         return (
             <div className="relative rounded-lg overflow-hidden shadow-md group">
                 <StoryImage storagePath={asset.storage_path} alt="Story Photo" />

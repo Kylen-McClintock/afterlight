@@ -62,11 +62,11 @@ export function ShareDialog({ storyId, storyTitle, trigger }: ShareDialogProps) 
     const generateText = (type: string) => {
         switch (type) {
             case "prompt":
-                return `I'm capturing my memories and stories, and I'd love your help. Could you record a story about "${safeTitle}" for my collection? Please add your voice here: ${storyUrl}`
+                return `I'm capturing my memories and stories, and I'd love your help. Could you record a story about "${safeTitle}" for my collection? Please add your voice here: ${storyUrl}\n\n(If you have any relevant photos, please include a link to Google Photos, Box, etc.!)`
             case "complete":
                 return `I'm working on preserving my memories, and I just recorded a story called "${safeTitle}". I wanted to share this piece of my journey with you. You can listen to it here: ${storyUrl}`
             case "collaborate":
-                return `I'm capturing some of my memories, and I started a story called "${safeTitle}". I feel like it's missing your perspective. I'd love for you to add your part to make it complete. Add your voice here: ${storyUrl}`
+                return `I'm capturing some of my memories, and I started a story called "${safeTitle}". I feel like it's missing your perspective. I'd love for you to add your part to make it complete. Add your voice here: ${storyUrl}\n\n(If you have any relevant photos, please include a link to Google Photos, Box, etc.!)`
             default:
                 return storyUrl
         }

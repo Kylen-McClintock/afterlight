@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { CardInteractionBar } from "@/components/shared/CardInteractionBar"
 
-export function InteractionWrapper({ storyId }: { storyId: string }) {
+export function InteractionWrapper({ storyId, isPrimaryUser }: { storyId: string, isPrimaryUser?: boolean }) {
     const [interaction, setInteraction] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
@@ -38,7 +38,7 @@ export function InteractionWrapper({ storyId }: { storyId: string }) {
                 itemType="story"
                 interaction={interaction}
                 onUpdate={fetchInteraction}
-                onDelete={handleDelete}
+                onDelete={isPrimaryUser ? handleDelete : undefined}
                 variant="full"
             />
         </div>

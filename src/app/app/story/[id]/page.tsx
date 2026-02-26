@@ -6,12 +6,15 @@ import { ArrowLeft, Calendar, User, Share2, MoreVertical, FileText } from "lucid
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { EditStoryDialog } from "@/components/story/EditStoryDialog"
+import { ShareDialog } from "@/components/story/ShareDialog"
 import { StoryAssetViewer } from "@/components/story/StoryAssetViewer"
+import { AddCloudPhotoDialog } from "@/components/story/AddCloudPhotoDialog"
 import { InteractionWrapper } from "./InteractionWrapper"
 
 export default async function StoryDetailPage({ params }: { params: { id: string } }) {
     const supabase = await createClient()
     const { id } = await params
+    const { data: { user } } = await supabase.auth.getUser()
 
     const { data: story, error } = await supabase
         .from('story_sessions')
@@ -19,7 +22,8 @@ export default async function StoryDetailPage({ params }: { params: { id: string
       *,
       story_assets (*),
       storyteller:storyteller_user_id (display_name),
-      recipients:story_recipients (recipient_email)
+      recipients:story_recipients (recipient_email),
+      circle:circle_id (primary_user_id)
     `)
         .eq('id', id)
         .single()
@@ -50,10 +54,16 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                         </Button>
                     </Link>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                            <Share2 className="mr-2 h-4 w-4" />
-                            Share
-                        </Button>
+                        <ShareDialog
+                            storyId={story.id}
+                            storyTitle={story.title}
+                            trigger={
+                                <Button variant="outline" size="sm">
+                                    <Share2 className="mr-2 h-4 w-4" />
+                                    Share
+                                </Button>
+                            }
+                        />
                         <EditStoryDialog
                             story={story}
                             onSuccess={async () => {
@@ -135,11 +145,21 @@ export default async function StoryDetailPage({ params }: { params: { id: string
                         No content available for this story.
                     </div>
                 )}
+
+                {/* Add Cloud Photos Button */}
+                <div className="mt-8">
+                    <AddCloudPhotoDialog
+                        storyId={story.id}
+                        onSuccess={async () => {
+                            'use server'
+                        }}
+                    />
+                </div>
             </main>
 
             {/* Interaction Footer */}
             <div className="border-t pt-8 pb-20">
-                <InteractionWrapper storyId={story.id} />
+                <InteractionWrapper storyId={story.id} isPrimaryUser={!!(user && story.circle?.primary_user_id === user.id)} />
             </div>
         </div>
     )

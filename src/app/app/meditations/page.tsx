@@ -28,7 +28,7 @@ export default function MeditationsPage() {
         if (qData) setQuotes(qData)
 
         // Fetch Meditations
-        const { data: mData } = await supabase.from('library_meditations').select('*').order('created_at', { ascending: false }).limit(50)
+        const { data: mData } = await supabase.from('library_meditations').select('*, circle:circle_id(primary_user_id)').order('created_at', { ascending: false }).limit(50)
         if (mData) setMeditations(mData)
 
         // Fetch Interactions (Stars/Notes)
@@ -276,15 +276,16 @@ function AddCustomMediaDialog({ onSuccess }: { onSuccess: () => void }) {
                             onChange={e => setFormData({ ...formData, type: e.target.value })}
                         >
                             <option value="video">YouTube / Video Link</option>
+                            <option value="song">Song / Spotify Link</option>
                             <option value="text">Text / Quote</option>
                         </select>
                     </div>
                     <div className="space-y-2">
-                        <Label>{formData.type === 'video' ? 'Video URL' : 'Content'}</Label>
+                        <Label>{formData.type === 'video' ? 'Video URL' : formData.type === 'song' ? 'Spotify / Song URL' : 'Content'}</Label>
                         <Textarea
                             value={formData.content}
                             onChange={e => setFormData({ ...formData, content: e.target.value })}
-                            placeholder={formData.type === 'video' ? "https://youtube.com/..." : "Enter text here..."}
+                            placeholder={formData.type === 'video' ? "https://youtube.com/..." : formData.type === 'song' ? "https://open.spotify.com/..." : "Enter text here..."}
                         />
                     </div>
                     <Button onClick={handleSave} disabled={loading || !formData.title}>Save to Library</Button>

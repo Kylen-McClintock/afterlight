@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Play, Sparkles } from "lucide-react"
+import { Play, Sparkles, Music, ExternalLink } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { CardInteractionBar } from "@/components/shared/CardInteractionBar"
 
@@ -36,7 +36,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
         }
     }
 
-    const isOwner = userId && meditation.user_id === userId
+    const isPrimaryUser = userId && meditation.circle?.primary_user_id === userId
 
     return (
         <Card className="group hover:border-primary/50 transition-all flex flex-col h-full relative">
@@ -46,6 +46,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                         {meditation.title}
                     </CardTitle>
                     {meditation.type === 'video' && <Play className="h-4 w-4 text-muted-foreground" />}
+                    {meditation.type === 'song' && <Music className="h-4 w-4 text-muted-foreground" />}
                 </div>
                 <CardDescription className="flex items-center gap-2 text-xs">
                     <span className="bg-secondary px-2 py-0.5 rounded-full">{meditation.duration_mins} min</span>
@@ -139,7 +140,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             interaction={interaction}
                             onUpdate={onUpdate}
                             variant="full"
-                            onDelete={handleDelete}
+                            onDelete={isPrimaryUser ? handleDelete : undefined}
                         />
                     </div>
                 </DialogContent>
@@ -155,7 +156,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                             interaction={interaction}
                             onUpdate={onUpdate}
                             variant="condensed"
-                            onDelete={handleDelete}
+                            onDelete={isPrimaryUser ? handleDelete : undefined}
                         />
                     </div>
 
@@ -177,6 +178,42 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                     />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+
+                    {meditation.type === 'song' && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="default" size="sm" className="text-xs h-7 px-2 ml-2 bg-green-600 hover:bg-green-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
+                                    <Music className="h-3 w-3 mr-1" /> Listen
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>{meditation.title}</DialogTitle>
+                                </DialogHeader>
+                                <div className="w-full rounded-md overflow-hidden min-h-[152px]">
+                                    {meditation.content.includes('spotify.com') ? (
+                                        <iframe
+                                            style={{ borderRadius: '12px' }}
+                                            src={meditation.content.replace('/track/', '/embed/track/').replace('/playlist/', '/embed/playlist/').replace('/album/', '/embed/album/')}
+                                            width="100%"
+                                            height="152"
+                                            frameBorder="0"
+                                            allowFullScreen
+                                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center p-8 bg-muted/20 text-center gap-4 border rounded-md">
+                                            <p className="text-sm text-muted-foreground">This song format is not natively embedded.</p>
+                                            <a href={meditation.content} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium flex items-center gap-1">
+                                                Open Link <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             </DialogContent>
                         </Dialog>
