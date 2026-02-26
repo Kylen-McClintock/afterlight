@@ -242,27 +242,31 @@ ${userName}`
                                 <Card key={prompt.id} className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => onSelect(prompt)}>
 
                                     <CardHeader>
-                                        <div className="flex justify-between items-start">
-                                            <div className="space-y-2">
-                                                <CardTitle className="text-lg">{prompt.title}</CardTitle>
-                                                <div className="flex gap-2">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                            <div className="space-y-2 w-full sm:w-auto">
+                                                <CardTitle className="text-lg leading-tight">{prompt.title}</CardTitle>
+                                                <div className="flex flex-wrap gap-2">
                                                     {prompt.is_custom && <Badge variant="default">Custom</Badge>}
                                                     {prompt.tags && prompt.tags.map((tag: string) => (
                                                         <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                                                     ))}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <Button variant="ghost" size="sm" onClick={(e) => handleShareClick(prompt, e)}>
+                                            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
+                                                <Button variant="secondary" size="sm" className="flex-1 sm:flex-none" onClick={(e) => handleShareClick(prompt, e)}>
                                                     Share
                                                 </Button>
-                                                <Button variant="ghost" size="sm" onClick={() => onSelect(prompt)}>Select</Button>
-                                                <CardInteractionBar
-                                                    itemId={prompt.id}
-                                                    itemType="prompt"
-                                                    variant="condensed"
-                                                    onDelete={() => handleDeletePrompt(prompt)}
-                                                />
+                                                <Button variant="default" size="sm" className="flex-1 sm:flex-none" onClick={() => onSelect(prompt)}>
+                                                    Select
+                                                </Button>
+                                                <div className="w-full sm:w-auto mt-2 sm:mt-0" onClick={e => e.stopPropagation()}>
+                                                    <CardInteractionBar
+                                                        itemId={prompt.id}
+                                                        itemType="prompt"
+                                                        variant="condensed"
+                                                        onDelete={() => handleDeletePrompt(prompt)}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </CardHeader>
