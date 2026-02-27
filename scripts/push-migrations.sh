@@ -16,9 +16,9 @@ if [ -z "$SUPABASE_DB_PASSWORD" ]; then
 fi
 
 echo "Linking to Supabase project $SUPABASE_PROJECT_ID..."
-npx supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+npx -y supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
 
 echo "Pushing database migrations..."
-npx supabase db push --password "$SUPABASE_DB_PASSWORD"
+npx -y supabase db push --password "$SUPABASE_DB_PASSWORD"
 
 echo "Migrations completed successfully!"
