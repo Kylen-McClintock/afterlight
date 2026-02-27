@@ -50,16 +50,18 @@ export default function MeditationsPage() {
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto pb-20">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-heading font-bold">Mindfulness Library</h1>
-                    <p className="text-muted-foreground">Collections of wisdom, quotes, and guided meditations.</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="min-w-0 w-full">
+                    <h1 className="text-3xl font-heading font-bold break-words">Mindfulness Library</h1>
+                    <p className="text-muted-foreground break-words">Collections of wisdom, quotes, and guided meditations.</p>
                 </div>
-                <AddCustomMediaDialog onSuccess={fetchData} />
+                <div className="shrink-0 w-full sm:w-auto">
+                    <AddCustomMediaDialog onSuccess={fetchData} />
+                </div>
             </div>
 
             <Tabs defaultValue="all" className="space-y-6" onValueChange={setActiveTab}>
-                <TabsList>
+                <TabsList className="h-auto flex-wrap justify-start gap-1 w-full bg-muted/40 sm:bg-muted p-1">
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="quotes">Quotes</TabsTrigger>
                     <TabsTrigger value="audio">Audio</TabsTrigger>
