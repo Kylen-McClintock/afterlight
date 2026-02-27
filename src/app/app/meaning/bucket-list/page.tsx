@@ -108,10 +108,10 @@ export default function BucketListPage() {
 
     return (
         <div className="max-w-3xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-heading font-bold">Bucket List</h1>
-                    <p className="text-muted-foreground">Dreams big and small. Every full version has a tiny version.</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="min-w-0 w-full">
+                    <h1 className="text-3xl font-heading font-bold break-words">Bucket List</h1>
+                    <p className="text-muted-foreground break-words">Dreams big and small. Every full version has a tiny version.</p>
                 </div>
                 <Button onClick={() => setIsAdding(!isAdding)}>
                     {isAdding ? "Cancel" : <><Plus className="mr-2 h-4 w-4" /> Add Item</>}
