@@ -167,8 +167,8 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                                     <Play className="h-3 w-3 mr-1" /> Watch
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-3xl">
-                                <DialogHeader>
+                            <DialogContent className="sm:max-w-3xl max-w-[calc(100vw-2rem)] w-full mx-auto overflow-hidden p-4 sm:p-6 flex flex-col gap-4">
+                                <DialogHeader className="min-w-0">
                                     <DialogTitle className="break-words">{meditation.title}</DialogTitle>
                                 </DialogHeader>
                                 <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
@@ -190,9 +190,9 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                                     <Music className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Listen</span>
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl w-[95vw]">
-                                <DialogHeader>
-                                    <DialogTitle>{meditation.title}</DialogTitle>
+                            <DialogContent className="sm:max-w-2xl max-w-[calc(100vw-2rem)] w-full mx-auto overflow-hidden p-4 sm:p-6 flex flex-col gap-4">
+                                <DialogHeader className="min-w-0">
+                                    <DialogTitle className="break-words">{meditation.title}</DialogTitle>
                                 </DialogHeader>
                                 <div className="w-full rounded-md overflow-hidden min-h-[352px]">
                                     {meditation.content.includes('spotify.com') ? (

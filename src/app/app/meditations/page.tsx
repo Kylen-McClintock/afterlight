@@ -198,12 +198,12 @@ function QuoteCard({ quote }: { quote: any }) {
                     </CardContent>
                 </Card>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg w-[95vw] z-50 max-h-[85vh] flex flex-col p-0 gap-0">
-                <DialogHeader className="p-6 pb-2 min-w-0">
+            <DialogContent className="sm:max-w-lg max-w-[calc(100vw-2rem)] w-full mx-auto z-50 max-h-[85vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-4 sm:p-6 pb-2 min-w-0">
                     <DialogTitle className="break-words">Daily Wisdom</DialogTitle>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-6 pt-4 min-w-0">
-                    <blockquote className="italic text-xl font-serif mb-6 leading-relaxed border-l-4 pl-4 border-primary/20 break-words">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4 min-w-0">
+                    <blockquote className="italic text-lg sm:text-xl font-serif mb-6 leading-relaxed border-l-4 pl-4 border-primary/20 break-words">
                         "{quote.quote_text}"
                     </blockquote>
                     <p className="text-right text-muted-foreground font-medium break-words">— {quote.author}</p>
