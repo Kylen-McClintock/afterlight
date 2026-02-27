@@ -198,15 +198,15 @@ function QuoteCard({ quote }: { quote: any }) {
                     </CardContent>
                 </Card>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col p-0 gap-0">
-                <DialogHeader className="p-6 pb-2">
-                    <DialogTitle>Daily Wisdom</DialogTitle>
+            <DialogContent className="sm:max-w-lg w-[95vw] z-50 max-h-[85vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-6 pb-2 min-w-0">
+                    <DialogTitle className="break-words">Daily Wisdom</DialogTitle>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-6 pt-4">
-                    <blockquote className="italic text-xl font-serif mb-6 leading-relaxed border-l-4 pl-4 border-primary/20">
+                <div className="flex-1 overflow-y-auto p-6 pt-4 min-w-0">
+                    <blockquote className="italic text-xl font-serif mb-6 leading-relaxed border-l-4 pl-4 border-primary/20 break-words">
                         "{quote.quote_text}"
                     </blockquote>
-                    <p className="text-right text-muted-foreground font-medium">— {quote.author}</p>
+                    <p className="text-right text-muted-foreground font-medium break-words">— {quote.author}</p>
                 </div>
                 {/* Placeholder for interactions - Quotes don't have backend support for ratings/notes yet, 
                      but we can add a simple "Copy" or "Share" button, 

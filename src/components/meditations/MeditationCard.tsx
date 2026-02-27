@@ -91,20 +91,20 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                     </button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-3xl w-[95vw] z-50 max-h-[85vh] flex flex-col p-0 gap-0">
-                    <DialogHeader className="p-6 pb-2">
-                        <DialogTitle>{meditation.title}</DialogTitle>
+                    <DialogHeader className="p-6 pb-2 min-w-0">
+                        <DialogTitle className="break-words">{meditation.title}</DialogTitle>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto p-6 pt-3">
-                        <div className="space-y-6">
+                    <div className="flex-1 overflow-y-auto p-6 pt-3 min-w-0">
+                        <div className="space-y-6 min-w-0">
                             {meditation.type === 'wisdom' && meditation.metadata?.useful_thought && (
-                                <div className="bg-primary/5 p-4 rounded-md border border-primary/10">
+                                <div className="bg-primary/5 p-4 rounded-md border border-primary/10 min-w-0">
                                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Useful Thought</span>
-                                    <p className="text-lg font-medium text-primary italic">"{meditation.metadata.useful_thought}"</p>
+                                    <p className="text-lg font-medium text-primary italic break-words">"{meditation.metadata.useful_thought}"</p>
                                 </div>
                             )}
 
-                            <div className="text-base leading-relaxed text-muted-foreground">
+                            <div className="text-base leading-relaxed text-muted-foreground break-words">
                                 {meditation.description}
                             </div>
 
@@ -148,8 +148,8 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
 
             <CardFooter className="pt-0 border-t p-3 flex justify-between bg-muted/5 z-20 relative overflow-hidden">
                 {/* Condensed Bar for Card View */}
-                <div className="w-full flex flex-wrap justify-between items-center gap-2 min-w-0">
-                    <div className="flex-1 min-w-[120px] sm:min-w-[200px] overflow-hidden">
+                <div className="w-full flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 min-w-0">
+                    <div className="w-full sm:flex-1 min-w-[120px] sm:min-w-[200px] overflow-hidden">
                         <CardInteractionBar
                             itemId={meditation.id}
                             itemType="meditation"
@@ -163,13 +163,13 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                     {meditation.type === 'video' && (
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="default" size="sm" className="text-xs h-7 px-2 shrink-0 bg-red-600 hover:bg-red-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
+                                <Button variant="default" size="sm" className="w-full sm:w-auto text-xs h-7 px-2 shrink-0 bg-red-600 hover:bg-red-700 text-white click-stop-propagation" onClick={e => e.stopPropagation()}>
                                     <Play className="h-3 w-3 mr-1" /> Watch
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-3xl">
                                 <DialogHeader>
-                                    <DialogTitle>{meditation.title}</DialogTitle>
+                                    <DialogTitle className="break-words">{meditation.title}</DialogTitle>
                                 </DialogHeader>
                                 <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
                                     <iframe
