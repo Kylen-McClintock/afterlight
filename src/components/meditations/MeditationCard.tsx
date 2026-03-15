@@ -90,7 +90,7 @@ export function MeditationCard({ meditation, interaction, onUpdate }: { meditati
                         <span className="sr-only">Expand</span>
                     </button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-3xl w-[95vw] z-50 max-h-[85vh] flex flex-col p-0 gap-0">
+                <DialogContent className="sm:max-w-3xl max-w-[calc(100vw-2rem)] w-full mx-auto z-50 max-h-[85vh] flex flex-col p-0 gap-0">
                     <DialogHeader className="p-6 pb-2 min-w-0">
                         <DialogTitle className="break-words">{meditation.title}</DialogTitle>
                     </DialogHeader>

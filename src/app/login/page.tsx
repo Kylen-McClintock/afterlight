@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, ArrowRight, Eye, EyeOff } from "lucide-react"
 
-export default function LoginPage() {
+function LoginForms() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const nextUrl = searchParams.get('next') || "/app"
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
@@ -34,7 +36,7 @@ export default function LoginPage() {
             setError(error.message)
             setIsLoading(false)
         } else {
-            router.push("/app")
+            router.push(nextUrl)
             router.refresh()
         }
     }
@@ -47,17 +49,20 @@ export default function LoginPage() {
 
         const supabase = createClient()
         // Redirect ensures we come back to /auth/callback which handles the session
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                emailRedirectTo: `${location.origin}/auth/callback`,
+                emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
             },
         })
 
         if (error) {
             setError(error.message)
             setIsLoading(false)
+        } else if (data.session) {
+            router.push(nextUrl)
+            router.refresh()
         } else {
             setMessage("Check your email for the confirmation link!")
             setIsLoading(false)
@@ -79,7 +84,7 @@ export default function LoginPage() {
                                 await supabase.auth.signInWithOAuth({
                                     provider: 'google',
                                     options: {
-                                        redirectTo: `${location.origin}/auth/callback`
+                                        redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`
                                     }
                                 })
                             }}>
@@ -205,6 +210,16 @@ export default function LoginPage() {
           If not, I'll need to create it or simplify. 
           Checking file structure previously... src/components/ui/ exists. 
       */}
+        </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <div className="min-h-screen bg-muted/20">
+            <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin" /></div>}>
+                <LoginForms />
+            </Suspense>
         </div>
     )
 }
